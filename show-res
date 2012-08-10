@@ -1,0 +1,78 @@
+#!/bin/bash
+
+in=(mode cons_range tl_mode_range rw_ratio_range delay_range loc_range pop_range)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+cd $CMB_HOME
+
+mode=$1
+cr=$2
+tr=$3
+rr=$4
+nr=$5
+lr=$6
+pr=$7
+
+param() {
+  local p=$1
+  grep $p $d/conf_info | cut -d= -f2
+}
+
+skip() {
+  local p=$1; local pr=$2
+  [[ $pr == - ]] && echo false
+  pr_arr=($(echo $pr | tr ',' ' '))
+  for x in ${pr_arr[@]}; do
+    [[ $p == $x ]] && echo false
+  done
+  echo true
+}
+
+latency() {
+  local file=$1
+  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1
+  echo $lat
+}
+
+summ_h_f="%5s\t%3s\t%5s\t%3s\t%3s\t%3s\t%7s\t%7s\t%7s\t%7s\t%6s\n"
+summ_f="%2s(%3s)\t%3s\t%5s\t%3s\t%3s\t%5.0f\t%7.2f\t%7.2f\t%7.4f\t%7.4f\t%6.4f\n"
+
+[[ $mode == -s ]] && printf $summ_h_f consist r:w delay loc pop ops/s get upd confl mig err
+for d in $(ls -d res/* | egrep [0-9]{8}_[0-9]{6}); do
+  [[ ! -e $d/summary.csv ]] && echo "$d: missing summary.csv" && continue
+  [[ ! -e $d/conf_info ]] && echo "$d: missing conf_info" && continue
+
+  c=$(param consistency)
+  [[ $(skip $c $cr) == true ]] && continue
+  t=$(param tl_mode)
+  [[ $(skip $t $tr) == true ]] && continue
+  r=$(param rw_ratio)
+  [[ $(skip $r $rr) == true ]] && continue
+  n=$(param delay)
+  [[ $(skip $n $nr) == true ]] && continue
+  l=$(param locality)
+  [[ $(skip $l $lr) == true ]] && continue
+  p=$(param popularity)
+  [[ $(skip $p $pr) == true ]] && continue
+
+  case $mode in
+  -r) echo "$c($t),$r,$l ($n)"
+      sed -n '2p' $d/summary.csv
+      sed -n '2p' $d/*_latencies.csv
+      cat $d/metrics;;
+  -s) tp=$(awk 'NR>1 {print $3 / $1}' $d/summary.csv)
+      lat_get=$(latency $d/get_latencies.csv)
+      lat_upd=$(latency $d/update-existing_latencies.csv)
+      total=$(awk -F, 'NR>1 {print $3}' $d/summary.csv)
+      conf=$(awk -F= -v t="$total" '/conflicts/ {printf 100 * ($2 / t)}' $d/metrics)
+      mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $d/metrics)
+      err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $d/summary.csv)
+      [[ $t == latest ]] && t=lat
+      printf $summ_f $c $t $r $((2*n)) $l $p $tp $lat_get $lat_upd $conf $mig $err;;
+  -m) cache=$(sed -n 's/disk_cache=\(.*\)/\1/p' $d/metrics)
+      echo -e "$c($t)\t$r\t$cache"
+  esac
+done
+
+exit 0

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -ue
+
+site=$1
+dst=$HOME/workspace
+#dst=/tmp
+
+for d in cmb images; do
+  rsync -avz --delete --progress $site.g5k:$d $dst
+done

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+req_version=${1:-latest}
+
+set -ue
+pushd tmp > /dev/null
+
+key=$(cat obj_keys | tr -d '\r')
+ip=127.0.0.1
+curl -v http://$ip:8098$key?req_version=$req_version 2>&1 | sed 's/< X-Riak-Vclock: \(.*\)/\1/w obj_vclocks'
+
+popd > /dev/null

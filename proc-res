@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -ue
+cd $CMB_HOME
+
+#test_dir=$HOME/workspace/basho_bench/tests
+#rm -fr $test_dir; mkdir $test_dir
+
+for d in $(ls -d res/* | egrep [0-9]{8}_[0-9]{6}); do
+  [[ -e $d/summary.csv ]] && continue
+  [[ -z $(ls $d/bch-*) ]] && echo "$d: No bch-*" && continue
+  conf=$(ls $d/bch-*/bench.config | head -1)
+  duration=$(grep -v % $conf | sed -n 's/{duration, \(.*\)}\./\1/p')
+  ./basho_bench_dist $duration $d $(ls -d $d/bch-*)
+#  ln -s $CMB_HOME/$d $test_dir/current
+#  pushd $test_dir > /dev/null
+#  ../priv/summary.r
+#  popd > /dev/null
+#  unlink $test_dir/current
+done
+
+exit 0

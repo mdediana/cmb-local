@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -ue
+
+imgs=""
+for f in $CMB_HOME/graphs/*.png; do
+  imgs="$imgs $f"
+done
+
+eog $imgs 

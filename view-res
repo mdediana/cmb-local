@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -ue
+
+eog $(ls $CMB_HOME/res/*/summary.png) 

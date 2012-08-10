@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -ue
+pushd tmp > /dev/null
+
+content=$(date)
+
+ip=127.0.0.1
+curl -v -d "$content" -H "Content-Type: text/plain" http://$ip:8098/riak/test 2>&1 | sed "s/< Location: \(.*\)\r/\1/w obj_keys"
+
+popd > /dev/null
