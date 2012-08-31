@@ -5,6 +5,6 @@ cd $CMB_HOME
 
 site=$1
 
-rsync -avz --exclude latest $site.g5k:cmb/res $CMB_HOME
+rsync -avz --exclude latest $site.g5k:res $CMB_HOME
 
 $CMB_HOME/proc-res
