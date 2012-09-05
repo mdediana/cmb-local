@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(option res_dir cons_range tl_mode_range rw_ratio_range delay_range loc_range pop_range)
+in=(option res_dir cons_range tl_mode_range rw_ratio_range loc_range pop_range delay_range)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -11,9 +11,9 @@ res_dir=$2
 cr=$3
 tr=$4
 rr=$5
-nr=$6
-lr=$7
-pr=$8
+lr=$6
+pr=$7
+nr=$8
 
 [[ $tr == "lat" ]] && tr=latest
 
@@ -38,18 +38,18 @@ latency() {
   echo $lat
 }
 
-param_h_f="%5s\t%3s\t%5s\t%3s\t%3s"
-param_f="%2s(%3s)\t%3s\t%5s\t%3s\t%3s"
+param_h_f="%5s\t%3s\t%5s\t%3s\t%3s"	# header params
+param_f="%2s(%3s)\t%3s\t%3s\t%3s\t%5s"	# values
 
-summ_h_f=$param_h_f"\t%3s\t%7s\t%7s\t%7s\t%7s\t%6s\n"
-summ_f=$param_f"\t%5.0f\t%7.2f\t%7.2f\t%7.4f\t%7.4f\t%6.4f\n"
+summ_h_f=$param_h_f"\t%3s\t%7s\t%7s\t%7s\t%7s\t%6s\n"		# header params + results
+summ_f=$param_f"\t%5.0f\t%7.2f\t%7.2f\t%7.4f\t%7.4f\t%6.4f\n"	# values
 
 dir_h_f=$param_h_f"\t%s\n"
 dir_f=$param_f"\t%s\n"
 
-[[ $option == -s ]] && printf $summ_h_f consist r:w delay loc pop ops/s get upd confl mig err
-[[ $option == -d ]] && printf $summ_h_f consist r:w delay loc pop dir
-count=0 # used by -c option
+[[ $option == -s ]] && printf $summ_h_f consist r_w loc pop delay ops_s get upd confl mig err
+[[ $option == -d ]] && printf $dir_h_f consist r_w loc pop delay dir
+
 for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
   [[ ! -e $d/summary.csv ]] && echo "$d: missing summary.csv" && continue
   [[ ! -e $d/conf_info ]] && echo "$d: missing conf_info" && continue
@@ -58,14 +58,15 @@ for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
   [[ $(skip $c $cr) == true ]] && continue
   t=$(param tl_mode)
   [[ $(skip $t $tr) == true ]] && continue
+  [[ $t == latest ]] && t=lat
   r=$(param rw_ratio)
   [[ $(skip $r $rr) == true ]] && continue
-  n=$(param delay)
-  [[ $(skip $n $nr) == true ]] && continue
   l=$(param locality)
   [[ $(skip $l $lr) == true ]] && continue
   p=$(param popularity)
   [[ $(skip $p $pr) == true ]] && continue
+  n=$(param delay)
+  [[ $(skip $n $nr) == true ]] && continue
 
   case $option in
   -r) echo "$c($t),$r,$l ($n)"
@@ -79,14 +80,11 @@ for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
       conf=$(awk -F= -v t="$total" '/conflicts/ {printf 100 * ($2 / t)}' $d/metrics)
       mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $d/metrics)
       err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $d/summary.csv)
-      [[ $t == latest ]] && t=lat
-      printf $summ_f $c $t $r $((2*n)) $l $p $tp $lat_get $lat_upd $conf $mig $err;;
-  -d) printf $dir_f $c $t $r $((2*n)) $l $p $d;;
-  -c) ((count++)) || true;;
+      printf $summ_f $c $t $r $l $p $((2*n)) $tp $lat_get $lat_upd $conf $mig $err;;
+  -d) printf $dir_f $c $t $r $l $p $((2*n)) $d;;
   -m) cache=$(sed -n 's/disk_cache=\(.*\)/\1/p' $d/metrics)
       echo -e "$c($t)\t$r\t$cache"
   esac
-done
-[[ $option == -c ]] && echo $count
+done | sort
 
 exit 0
