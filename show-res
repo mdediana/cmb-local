@@ -77,6 +77,8 @@ for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
       lat_get=$(latency $d/get_latencies.csv)
       lat_upd=$(latency $d/update-existing_latencies.csv)
       total=$(awk -F, 'NR>1 {print $3}' $d/summary.csv)
+      # conflicts should only take reads into account, but since each write is
+      # preceded by a read, total represents the number of reads
       conf=$(awk -F= -v t="$total" '/conflicts/ {printf 100 * ($2 / t)}' $d/metrics)
       mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $d/metrics)
       err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $d/summary.csv)
