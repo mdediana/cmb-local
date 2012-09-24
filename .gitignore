@@ -2,3 +2,4 @@
 .Rhistory
 res*/
 *.csv
+*.log
