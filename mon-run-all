@@ -4,17 +4,21 @@ set -ue
 
 ((h=60*60))
 ((tz=5*h))
-host="rennes.g5k"
+fend="rennes.g5k"
 
 while :; do
-  last_mod=$(ssh $host "ls -l cmb/run-all.log" | cut -d' ' -f6-8)
+  [[ -z $(ssh $fend "oarstat -u | awk 'NR > 2 {print \$5}' | grep R") ]] && echo "No running job" && exit 0
+
+  last_mod=$(ssh $fend "ls -l cmb/run-all.log" | awk '{ print $6,$7,$8 }')
   ((time_mod=$(date -d "$last_mod" +%s)-tz))
   ((dt=$(date +%s)-time_mod))
   echo "Last mod: $last_mod (${dt}s)"
+
   if [[ $dt -gt $h ]]; then
     echo "WARN: run-all halted"
     mplayer -loop 220 alarm.wav &> /dev/null # 220 * 2.7s = 10min
     break
   fi
+
   sleep 120
 done
