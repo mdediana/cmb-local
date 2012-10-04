@@ -3,10 +3,12 @@
 set -ue
 cd $CMB_HOME
 
+res_dir=$1
+
 #test_dir=$HOME/workspace/basho_bench/tests
 #rm -fr $test_dir; mkdir $test_dir
 
-for d in $(ls -d res/* | egrep [0-9]{8}_[0-9]{6}); do
+for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
   [[ -e $d/summary.csv ]] && continue
   [[ -z $(ls $d/bch-*) ]] && echo "$d: No bch-*" && continue
   conf=$(ls $d/bch-*/bench.config | head -1)
