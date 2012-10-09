@@ -38,7 +38,7 @@ latency() {
   echo $lat
 }
 
-param_h_f="%5s\t%3s\t%5s\t%3s\t%3s"	# header params
+param_h_f="%5s\t%3s\t%3s\t%3s\t%5s"	# header params
 param_f="%2s(%3s)\t%3s\t%3s\t%3s\t%5s"	# values
 
 summ_h_f=$param_h_f"\t%3s\t%7s\t%7s\t%7s\t%7s\t%6s\n"		# header params + results
