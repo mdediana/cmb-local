@@ -28,7 +28,12 @@ plotFitUpd <- function(t) {
   curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = "red")
 }
 
-plotMetric <- function(t, ycolname, xcolname, fitfun = NULL) {
+plotFitUsers <- function(t) {
+  fm <- lm(users ~ delay, t)
+  curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = "red")
+}
+
+plotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   for (c in CS) {
     fname <- paste(paste(ycolname, c, sep = "_"), "png", sep = ".")
     png(fname, width = 1200, height = 1500)
@@ -41,7 +46,7 @@ plotMetric <- function(t, ycolname, xcolname, fitfun = NULL) {
 
           gname <- paste(r, l, p)
           plot(s[[ycolname]] ~ s[[xcolname]], data = s, main = gname,
-               xlab = xcolname, ylab = ycolname)
+               xlab = xcolname, ylab = ycolname, ylim = ylim)
 
           if (!is.null(fitfun)) { fitfun(s) }
         }
@@ -60,8 +65,8 @@ mig <- rowMeans(cbind(T1$mig, T2$mig, T3$mig))
 T <- cbind(T1[1:5], ops_s, get, upd, confl, mig)
 T <- cbind(T, users = avgUsers(T))
 
-plotMetric(T, "ops_s", "delay", plotFitOps_s)
-plotMetric(T, "get", "delay")
-plotMetric(T, "upd", "delay", plotFitUpd)
-plotMetric(T, "confl", "delay")
-plotMetric(T, "users", "delay")
+plotMetric(T, "ops_s", "delay", c(0,3e4), plotFitOps_s)
+plotMetric(T, "get", "delay", c(0, 150))
+plotMetric(T, "upd", "delay", c(0,450), plotFitUpd)
+plotMetric(T, "confl", "delay", c(0, 35))
+plotMetric(T, "users", "delay", c(2e5, 4e6), plotFitUsers)
