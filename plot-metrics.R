@@ -3,6 +3,7 @@
 T1 <- read.table("res.1.csv", header = TRUE, sep = ",")
 T2 <- read.table("res.2.csv", header = TRUE, sep = ",")
 T3 <- read.table("res.3.csv", header = TRUE, sep = ",")
+TS <- list(T1, T2, T3)
 
 CS <- levels(T1$consist)
 RS <- levels(T1$r_w)
@@ -11,29 +12,33 @@ PS <- levels(T1$pop)
 
 EXP <- function(x, a, b) { a * exp(b * x) }
 
-avgUsers <- function(t) {
+Mean <- function(ts, colname) {
+  rowMeans(sapply(ts, function(t) t[[colname]]))
+}
+
+AvgUsers <- function(t) {
   rw <- strsplit(RS[t$r_w], ":")
   r <- as.numeric(sapply(rw, "[[", 1))
   w <- as.numeric(sapply(rw, "[[", 2))
   t$ops_s * (r * t$get + w * t$upd) # little's law
 }
 
-plotFitOps_s <- function(t) {
+PlotFitOps_s <- function(t) {
   fm <- nls(ops_s ~ EXP(delay, a, b), t, c(a = 30000, b = -0.005))
   curve(EXP(x, coef(fm)[1], coef(fm)[2]), add = TRUE, col = "red")
 }
 
-plotFitUpd <- function(t) {
+PlotFitUpd <- function(t) {
   fm <- lm(upd ~ delay, t)
   curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = "red")
 }
 
-plotFitUsers <- function(t) {
+PlotFitUsers <- function(t) {
   fm <- lm(users ~ delay, t)
   curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = "red")
 }
 
-plotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
+PlotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   for (c in CS) {
     fname <- paste(paste(ycolname, c, sep = "_"), "png", sep = ".")
     png(fname, width = 1200, height = 1500)
@@ -56,17 +61,17 @@ plotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   graphics.off()
 }
 
-ops_s <- rowMeans(cbind(T1$ops_s, T2$ops_s, T3$ops_s))
-get <- rowMeans(cbind(T1$get, T2$get, T3$get))
-upd <- rowMeans(cbind(T1$upd, T2$upd, T3$upd))
-confl <- rowMeans(cbind(T1$confl, T2$confl, T3$confl))
-mig <- rowMeans(cbind(T1$mig, T2$mig, T3$mig))
+ops_s <- Mean(TS, "ops_s")
+get <- Mean(TS, "get")
+upd <- Mean(TS, "upd")
+confl <- Mean(TS, "confl")
+mig <- Mean(TS, "mig")
 
 T <- cbind(T1[1:5], ops_s, get, upd, confl, mig)
-T <- cbind(T, users = avgUsers(T))
+T <- cbind(T, users = AvgUsers(T))
 
-plotMetric(T, "ops_s", "delay", c(0,3e4), plotFitOps_s)
-plotMetric(T, "get", "delay", c(0, 150))
-plotMetric(T, "upd", "delay", c(0,450), plotFitUpd)
-plotMetric(T, "confl", "delay", c(0, 35))
-plotMetric(T, "users", "delay", c(2e5, 4e6), plotFitUsers)
+PlotMetric(T, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+PlotMetric(T, "get", "delay", c(0, 150))
+PlotMetric(T, "upd", "delay", c(0,450), PlotFitUpd)
+PlotMetric(T, "confl", "delay", c(0, 35))
+PlotMetric(T, "users", "delay", c(2e5, 4e6), PlotFitUsers)
