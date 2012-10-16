@@ -9,11 +9,27 @@ CS <- levels(T1$consist)
 RS <- levels(T1$r_w)
 LS <- unique(T1$loc)
 PS <- levels(T1$pop)
+DS <- unique(T1$delay)
 
 EXP <- function(x, a, b) { a * exp(b * x) }
 
 Mean <- function(ts, colname) {
   rowMeans(sapply(ts, function(t) t[[colname]]))
+}
+
+CheckFit <- function(t, fm, formula) {
+  if ((RS[t$r_w[1]] == "1:0" && all.vars(formula)[1] == "upd") ||
+      (RS[t$r_w[1]] == "0:1" && all.vars(formula)[1] == "get")) {
+    return(NULL)
+  }
+
+  # errors: gcap 5.6.4
+  r2 <- summary(fm)$adj.r.squared 
+  # There are no updates in 1:0
+  if (r2 < 0.7) {
+    scenario <- paste(CS[t$consist[1]], RS[t$r_w[1]], t$loc[1], PS[t$pop[1]])
+    cat("Bad R2:", r2, "[", all.vars(formula), "] [", scenario, "]", "\n")
+  }
 }
 
 AvgUsers <- function(t) {
@@ -25,19 +41,36 @@ AvgUsers <- function(t) {
 
 PlotFitLin <- function(t, formula) {
   fm <- lm(formula, t)
-  # errors: gcap 5.6.4
-  # print(summary(fm))
+  CheckFit(t, fm, formula)
   curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = "red")
+}
+
+PlotFitGet <- function(t) {
+  formula <- get ~ poly(delay, 3, raw = TRUE)
+  fm <- lm(formula, t)
+  CheckFit(t, fm, formula)
+  curve(coef(fm)[1] + coef(fm)[2] * x + coef(fm)[3] * x ^ 2 +
+        coef(fm)[4] * x ^ 3, add = TRUE, col = "red")
 }
 
 PlotFitOps_s <- function(t) {
   fm <- nls(ops_s ~ EXP(delay, a, b), t, c(a = 30000, b = -0.005))
+  # do not check fitness because r-squared is valid for linear regression only
   curve(EXP(x, coef(fm)[1], coef(fm)[2]), add = TRUE, col = "red")
 }
 
-PlotFitGet <- function(t) { PlotFitLin(t, get ~ delay) }
 PlotFitUpd <- function(t) { PlotFitLin(t, upd ~ delay) }
 PlotFitUsers <- function(t) { PlotFitLin(t, users ~ delay) }
+
+PlotAll <- function(t) {
+  for (d in DS) {
+    fname <- paste(paste("all", d, sep = "_"), "png", sep = ".")
+    png(fname, width = 1200, height = 1500)
+    s <- subset(t, delay == d)
+    plot(~ get + upd + ops_s + confl + mig, data = s)
+  }
+  graphics.off()
+}
 
 PlotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   for (c in CS) {
@@ -62,18 +95,22 @@ PlotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   graphics.off()
 }
 
-ops_s <- Mean(TS, "ops_s")
 get <- Mean(TS, "get")
 upd <- Mean(TS, "upd")
+ops_s <- Mean(TS, "ops_s")
 confl <- Mean(TS, "confl")
 mig <- Mean(TS, "mig")
 
 T <- cbind(T1[1:5], ops_s, get, upd, confl, mig)
 T <- cbind(T, users = AvgUsers(T))
 
-PlotMetric(T, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
-PlotMetric(T, "get", "delay", c(0, 150))
+PlotAll(T)
+
+PlotMetric(T, "get", "delay", c(0, 20), PlotFitGet)
+#PlotMetric(T, "get", "delay", c(0, 200), PlotFitGet)
 PlotMetric(T, "upd", "delay", c(0,450), PlotFitUpd)
+PlotMetric(T, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
 PlotMetric(T, "confl", "delay", c(0, 35))
 PlotMetric(T, "mig", "delay", c(0, 10))
-PlotMetric(T, "users", "delay", c(2e5, 4e6), PlotFitUsers)
+#PlotMetric(T, "users", "delay", c(2e5, 4e6), PlotFitUsers)
+PlotMetric(T, "users", "delay", c(2e5, 4e6))
