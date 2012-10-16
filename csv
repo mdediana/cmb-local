@@ -1,12 +1,12 @@
 #!/bin/bash
 
-in=(res_dir csv_file)
+in=(res_dir)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
 cd $CMB_HOME
 
 res_dir=$1
-csv_file=$2
 
+csv_file=$res_dir.csv
 $CMB_HOME/show-res -s $res_dir - - - - - - | tr '\t' , | tr -d ' ' > $csv_file
