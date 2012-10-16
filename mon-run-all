@@ -6,7 +6,7 @@ set -ue
 fend="rennes.g5k"
 
 while :; do
-#  [[ -z $(ssh $fend "oarstat -u | awk 'NR > 2 {print \$5}' | grep R") ]] && echo "No running job" && exit 0
+  [[ -z $(ssh $fend "oarstat -u | awk 'NR > 2 {print \$5}' | grep R") ]] && echo "No running job" && exit 0
 
   last_mod=$(ssh $fend "stat -c %y cmb/run-all.log")
   time_mod=$(date -d "$last_mod" +%s)
