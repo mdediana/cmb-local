@@ -11,7 +11,7 @@ while :; do
   last_mod=$(ssh $fend "stat -c %y cmb/run-all.log")
   time_mod=$(date -d "$last_mod" +%s)
   now=$(date +%s)
-  ((dt=$(date +%s)-time_mod)) | true # local now - remote last mod
+  ((dt=$(date +%s)-time_mod)) || true # local now - remote last mod
   echo "Last mod: $last_mod (${dt}s)"
 
   if [[ $dt -gt $threshold ]]; then
