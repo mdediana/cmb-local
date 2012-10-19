@@ -24,57 +24,29 @@ COLORS[CS[1]] <- "red"
 COLORS[CS[2]] <- "blue"
 COLORS[CS[3]] <- "green"
 
-AvgUsers <- function(t) {
-  rw <- strsplit(RS[t$r_w], ":")
-  r <- as.numeric(sapply(rw, "[[", 1))
-  w <- as.numeric(sapply(rw, "[[", 2))
-  t$ops_s * (r * t$get + w * t$upd) # little's law
-}
-
-TableMeans <- function(...) {
-  ts = list(...)
-  t <- ts[[1]][1:5]
-  metrics <- c("get", "upd", "ops_s", "confl", "mig")
-
-  for (m in metrics) {
-    old <- colnames(t)
-    cols <- sapply(ts, function(t) t[[m]])
-    t <- cbind(t,
-               rowMeans(cols),
-               apply(cols, 1, sd),
-               apply(cols, 1, function(x) sqrt(var(x) / length(x)))) # std err
-    colnames(t) <- c(old, m,
-                     paste(m, "sd", sep = "."),
-                     paste(m, "se", sep = "."))
-  }
-
-  cbind(t, users = AvgUsers(t))
-}
-
-CheckFit <- function(t, fm, formula) {
-  if ((RS[t$r_w[1]] == "1:0" && all.vars(formula)[1] == "upd"))
+CheckFit <- function(t, fm) {
+  if ((RS[t$r_w[1]] == "1:0" && all.vars(formula(fm))[1] == "upd"))
     return(NULL)
 
   # errors: gcap 5.6.4
   r2 <- summary(fm)$adj.r.squared 
   if (r2 < 0.7) {
     scenario <- paste(CS[t$consist[1]], RS[t$r_w[1]], t$loc[1], PS[t$pop[1]])
-    cat("Bad R2:", r2, "[", all.vars(formula), "] [", scenario, "]", "\n")
+    cat("Bad R2:", r2, "[", all.vars(formula(fm)), "] [", scenario, "]", "\n")
   }
 }
 
-PlotFitLin <- function(t, formula, color = "red") {
-  fm <- lm(formula, t)
-  CheckFit(t, fm, formula)
-  curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = color)
-}
-
 PlotFitGet <- function(t, color = "red") {
-  formula <- get ~ poly(delay, 3, raw = TRUE)
-  fm <- lm(formula, t)
-  CheckFit(t, fm, formula)
+  fm <- lm(get ~ poly(delay, 3, raw = TRUE), t)
+  CheckFit(t, fm)
   curve(coef(fm)[1] + coef(fm)[2] * x + coef(fm)[3] * x ^ 2 +
         coef(fm)[4] * x ^ 3, add = TRUE, col = color)
+}
+
+PlotFitUpd <- function(t, color = "red") {
+  fm <- lm(upd ~ delay, t)
+  CheckFit(t, fm)
+  curve(coef(fm)[1] + coef(fm)[2] * x, add = TRUE, col = color)
 }
 
 PlotFitOps_s <- function(t, color = "red") {
@@ -82,14 +54,6 @@ PlotFitOps_s <- function(t, color = "red") {
   fm <- nls(ops_s ~ f(delay, a, b), t, c(a = 30000, b = -0.005))
   # do not check fitness because r-squared is valid for linear regression only
   curve(f(x, coef(fm)[1], coef(fm)[2]), add = TRUE, col = color)
-}
-
-PlotFitUpd <- function(t, color = "red") {
-  PlotFitLin(t, upd ~ delay, color)
-}
-
-PlotFitUsers <- function(t, color = "red") {
-  PlotFitLin(t, users ~ delay, color)
 }
 
 PlotAll <- function(t) {
@@ -102,7 +66,7 @@ PlotAll <- function(t) {
   graphics.off()
 }
 
-PlotMetric <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
+PlotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   for (c in CS) {
     fname <- paste(paste(ycolname, c, sep = "_"), "png", sep = ".")
     png(fname, width = 1200, height = 1500)
@@ -111,16 +75,14 @@ PlotMetric <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
     for (r in RS) {
       for (l in LS) {
         for (p in PS) {
-          s <- subset(means, consist == c & r_w == r & loc == l & pop == p)
+          s <- subset(t, consist == c & r_w == r & loc == l & pop == p)
 
           gname <- paste(r, l, p)
           plot(s[[ycolname]] ~ s[[xcolname]], data = s, main = gname,
                xlab = xcolname, ylab = ycolname, ylim = ylim)
 
-          if (!is.null(fitfun)) { 
-            s <- subset(t, consist == c & r_w == r & loc == l & pop == p)
+          if (!is.null(fitfun))
             fitfun(s)
-          }
         }
       }
     }
@@ -136,12 +98,14 @@ PlotConsistComp <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
   for (r in RS) {
     for (l in LS) {
       for (p in PS) {
-        s <- lapply(1:3, function(i) subset(means, consist == CS[i] & r_w == r & loc == l & pop == p))
+        s <- lapply(CS, function(c) subset(means, consist == c & r_w == r &
+                                                  loc == l & pop == p))
 
         gname <- paste(r, l, p)
-        for (i in 1:3) {
+        for (i in 1:length(s)) {
           xy = s[[i]][[ycolname]] ~ s[[i]][[xcolname]]
           color = COLORS[[CS[i]]]
+
           if (i == 1)
             plot(xy, data = s[[i]], main = gname, xlab = xcolname,
                  ylab = ycolname, ylim = ylim, col = color)
@@ -157,18 +121,39 @@ PlotConsistComp <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
   graphics.off()
 }
 
+AvgUsers <- function(t) {
+  rw <- strsplit(RS[t$r_w], ":")
+  r <- as.numeric(sapply(rw, "[[", 1))
+  w <- as.numeric(sapply(rw, "[[", 2))
+  t$ops_s * (r * t$get + w * t$upd) # little's law
+}
+
 t <- rbind(T1, T2, T3)
-means <- TableMeans(T1, T2, T3)
+
+means <- T1[1:5]
+for (m in c("get", "upd", "ops_s", "confl", "mig")) {
+  cols <- cbind(T1[[m]], T2[[m]], T3[[m]])
+  old.names <- colnames(means)
+  means <- cbind(means,
+                 rowMeans(cols),
+                 apply(cols, 1, sd),
+                 apply(cols, 1, function(x) sqrt(var(x) / length(x)))) # std err
+  colnames(means) <- c(old.names,
+                       m,
+                       paste(m, "sd", sep = "."),
+                       paste(m, "se", sep = "."))
+}
+means <- cbind(means, users = AvgUsers(means))
 
 PlotAll(t)
 
-PlotMetric(t, means, "get", "delay", c(0, 20), PlotFitGet)
-#PlotMetric(t, means, "upd", "delay", c(0,450), PlotFitUpd)
-#PlotMetric(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
-#PlotMetric(t, means, "confl", "delay", c(0, 35))
-#PlotMetric(t, means, "mig", "delay", c(0, 10))
-#PlotMetric(t, means, "users", "delay", c(2e5, 4e6))
+PlotMetric(t, "get", "delay", c(0, 20), PlotFitGet)
+PlotMetric(t, "upd", "delay", c(0,450), PlotFitUpd)
+PlotMetric(t, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+PlotMetric(t, "confl", "delay", c(0, 35))
+PlotMetric(t, "mig", "delay", c(0, 10))
+PlotMetric(means, "users", "delay", c(2e5, 4e6))
 
-#PlotConsistComp(t, means, "get", "delay", c(0, 20), PlotFitGet)
-#PlotConsistComp(t, means, "upd", "delay", c(0,450), PlotFitUpd)
-#PlotConsistComp(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+PlotConsistComp(t, means, "get", "delay", c(0, 20), PlotFitGet)
+PlotConsistComp(t, means, "upd", "delay", c(0,450), PlotFitUpd)
+PlotConsistComp(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
