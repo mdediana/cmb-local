@@ -1,6 +1,5 @@
 #!/usr/bin/Rscript
 
-#library(Hmisc)
 library(hash)
 
 Load <- function(fn) {
@@ -25,15 +24,6 @@ COLORS[CS[1]] <- "red"
 COLORS[CS[2]] <- "blue"
 COLORS[CS[3]] <- "green"
 
-Mean <- function(ts, colname) {
-  rowMeans(sapply(ts, function(t) t[[colname]]))
-}
-
-Sd <- function(ts, colname) {
-  cols <- sapply(ts, function(t) t[[colname]])
-  apply(cols, 1, sd)
-}
-
 AvgUsers <- function(t) {
   rw <- strsplit(RS[t$r_w], ":")
   r <- as.numeric(sapply(rw, "[[", 1))
@@ -41,23 +31,23 @@ AvgUsers <- function(t) {
   t$ops_s * (r * t$get + w * t$upd) # little's law
 }
 
-TableMean <- function(...) {
+TableMeans <- function(...) {
   ts = list(...)
+  t <- ts[[1]][1:5]
+  metrics <- c("get", "upd", "ops_s", "confl", "mig")
 
-  get <- Mean(ts, "get")
-  upd <- Mean(ts, "upd")
-  ops_s <- Mean(ts, "ops_s")
-  confl <- Mean(ts, "confl")
-  mig <- Mean(ts, "mig")
+  for (m in metrics) {
+    old <- colnames(t)
+    cols <- sapply(ts, function(t) t[[m]])
+    t <- cbind(t,
+               rowMeans(cols),
+               apply(cols, 1, sd),
+               apply(cols, 1, function(x) sqrt(var(x) / length(x)))) # std err
+    colnames(t) <- c(old, m,
+                     paste(m, "sd", sep = "."),
+                     paste(m, "se", sep = "."))
+  }
 
-  get.sd <- Sd(ts, "get")
-  upd.sd <- Sd(ts, "upd")
-  ops_s.sd <- Sd(ts, "ops_s")
-  confl.sd <- Sd(ts, "confl")
-  mig.sd <- Sd(ts, "mig")
-
-  t <- cbind(T1[1:5], ops_s, ops_s.sd, get, get.sd, upd, upd.sd,
-             confl, confl.sd, mig, mig.sd)
   cbind(t, users = AvgUsers(t))
 }
 
@@ -127,13 +117,10 @@ PlotMetric <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
           plot(s[[ycolname]] ~ s[[xcolname]], data = s, main = gname,
                xlab = xcolname, ylab = ycolname, ylim = ylim)
 
-#          sdcolname <- paste(ycolname, "sd", sep = ".")
-#          sdplus <- s[[ycolname]] + s[[sdcolname]]
-#          sdminus <- s[[ycolname]] - s[[sdcolname]]
-#          errbar(s[[xcolname]], s[[ycolname]], sdplus, sdminus)
-
-          s <- subset(t, consist == c & r_w == r & loc == l & pop == p)
-          if (!is.null(fitfun)) { fitfun(s) }
+          if (!is.null(fitfun)) { 
+            s <- subset(t, consist == c & r_w == r & loc == l & pop == p)
+            fitfun(s)
+          }
         }
       }
     }
@@ -142,7 +129,7 @@ PlotMetric <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
 }
 
 PlotConsistComp <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
-  fname <- paste(paste(ycolname, "by_consist", sep = "_"), "png", sep = ".")
+  fname <- paste(paste("consist", ycolname, sep = "_"), "png", sep = ".")
   png(fname, width = 1200, height = 1500)
   par(mfrow = c(5, 4))
 
@@ -171,18 +158,17 @@ PlotConsistComp <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
 }
 
 t <- rbind(T1, T2, T3)
-means <- TableMean(T1, T2, T3)
+means <- TableMeans(T1, T2, T3)
 
 PlotAll(t)
 
 PlotMetric(t, means, "get", "delay", c(0, 20), PlotFitGet)
-PlotMetric(t, means, "upd", "delay", c(0,450), PlotFitUpd)
-PlotMetric(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
-PlotMetric(t, means, "confl", "delay", c(0, 35))
-PlotMetric(t, means, "mig", "delay", c(0, 10))
-#PlotMetric(t, means, "users", "delay", c(2e5, 4e6), PlotFitUsers)
-PlotMetric(t, means, "users", "delay", c(2e5, 4e6))
+#PlotMetric(t, means, "upd", "delay", c(0,450), PlotFitUpd)
+#PlotMetric(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+#PlotMetric(t, means, "confl", "delay", c(0, 35))
+#PlotMetric(t, means, "mig", "delay", c(0, 10))
+#PlotMetric(t, means, "users", "delay", c(2e5, 4e6))
 
-PlotConsistComp(t, means, "get", "delay", c(0, 20), PlotFitGet)
-PlotConsistComp(t, means, "upd", "delay", c(0,450), PlotFitUpd)
-PlotConsistComp(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+#PlotConsistComp(t, means, "get", "delay", c(0, 20), PlotFitGet)
+#PlotConsistComp(t, means, "upd", "delay", c(0,450), PlotFitUpd)
+#PlotConsistComp(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
