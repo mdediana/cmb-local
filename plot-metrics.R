@@ -2,27 +2,32 @@
 
 library(hash)
 
-Load <- function(fn) {
-  order.by = c("consist", "r_w", "loc", "pop", "delay")
+ts = lapply(1:4, function(i) {
+                   order.by = c("consist", "r_w", "loc", "pop", "delay")
+                   fn <- paste("res", i, "csv", sep = '.')
+                   t <- read.table(fn, header = TRUE, sep = ",")
+                   t[do.call(order, t[order.by]), ]
+                 })
+t <- do.call(rbind, ts)
 
-  t <- read.table(fn, header = TRUE, sep = ",")
-  t <- t[do.call(order, t[order.by]), ]
-}
+CS <- levels(t$consist)
+RS <- levels(t$r_w)
+LS <- unique(t$loc)
+PS <- levels(t$pop)
+DS <- unique(t$delay)
 
-T1 <- Load("res.1.csv")
-T2 <- Load("res.2.csv")
-T3 <- Load("res.3.csv")
-
-CS <- levels(T1$consist)
-RS <- levels(T1$r_w)
-LS <- unique(T1$loc)
-PS <- levels(T1$pop)
-DS <- unique(T1$delay)
-
-COLORS <- hash()  
+COLORS <- hash()  # one color, one consistency model
 COLORS[CS[1]] <- "red"
 COLORS[CS[2]] <- "blue"
 COLORS[CS[3]] <- "green"
+
+CheckCv <- function(m) {
+  limits <- c(0.2, 0.3, 0.4, 0.5)
+  for (col in c("get.cv", "upd.cv", "ops_s.cv")) {
+    cvs <- sapply(limits, function(l) dim(m[m[[col]] > l, ])[1])
+    cat(col, ":", cvs, "\n")
+  }
+}
 
 CheckFit <- function(t, fm) {
   if ((RS[t$r_w[1]] == "1:0" && all.vars(formula(fm))[1] == "upd"))
@@ -32,7 +37,7 @@ CheckFit <- function(t, fm) {
   r2 <- summary(fm)$adj.r.squared 
   if (r2 < 0.7) {
     scenario <- paste(CS[t$consist[1]], RS[t$r_w[1]], t$loc[1], PS[t$pop[1]])
-    cat("Bad R2:", r2, "[", all.vars(formula(fm)), "] [", scenario, "]", "\n")
+    cat("Bad R2:", r2, "[", all.vars(formula(fm)), "] [", scenario, "]\n")
   }
 }
 
@@ -90,7 +95,7 @@ PlotMetric <- function(t, ycolname, xcolname, ylim, fitfun = NULL) {
   graphics.off()
 }
 
-PlotConsistComp <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
+PlotConsistComp <- function(t, m, ycolname, xcolname, ylim, fitfun = NULL) {
   fname <- paste(paste("consist", ycolname, sep = "_"), "png", sep = ".")
   png(fname, width = 1200, height = 1500)
   par(mfrow = c(5, 4))
@@ -98,8 +103,8 @@ PlotConsistComp <- function(t, means, ycolname, xcolname, ylim, fitfun = NULL) {
   for (r in RS) {
     for (l in LS) {
       for (p in PS) {
-        s <- lapply(CS, function(c) subset(means, consist == c & r_w == r &
-                                                  loc == l & pop == p))
+        s <- lapply(CS, function(c) subset(m, consist == c & r_w == r &
+                                              loc == l & pop == p))
 
         gname <- paste(r, l, p)
         for (i in 1:length(s)) {
@@ -128,22 +133,26 @@ AvgUsers <- function(t) {
   t$ops_s * (r * t$get + w * t$upd) # little's law
 }
 
-t <- rbind(T1, T2, T3)
-
-means <- T1[1:5]
-for (m in c("get", "upd", "ops_s", "confl", "mig")) {
-  cols <- cbind(T1[[m]], T2[[m]], T3[[m]])
-  old.names <- colnames(means)
-  means <- cbind(means,
-                 rowMeans(cols),
-                 apply(cols, 1, sd),
-                 apply(cols, 1, function(x) sqrt(var(x) / length(x)))) # std err
-  colnames(means) <- c(old.names,
-                       m,
-                       paste(m, "sd", sep = "."),
-                       paste(m, "se", sep = "."))
+metrics <- c("get", "upd", "ops_s", "confl", "mig")
+m <- ts[[1]][1:5]
+for (mn in metrics) {
+  cols <- sapply(ts, "[[", mn)
+  mean <- rowMeans(cols)
+  sd <- apply(cols, 1, sd)
+  cv <- sd / mean
+  m <- cbind(m, mean, sd, cv,
+             apply(cols, 1, function(x) sqrt(var(x) / length(x)))) # std err
 }
-means <- cbind(means, users = AvgUsers(means))
+
+added.colnames <- sapply(metrics, function(mn) c(mn,
+                                                 paste(mn, "sd", sep = "."),
+                                                 paste(mn, "cv", sep = "."),
+                                                 paste(mn, "se", sep = ".")))
+colnames(m) <- c(colnames(m)[1:5], c(added.colnames))
+
+m <- cbind(m, users = AvgUsers(m))
+
+CheckCv(m)
 
 PlotAll(t)
 
@@ -152,8 +161,8 @@ PlotMetric(t, "upd", "delay", c(0,450), PlotFitUpd)
 PlotMetric(t, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
 PlotMetric(t, "confl", "delay", c(0, 35))
 PlotMetric(t, "mig", "delay", c(0, 10))
-PlotMetric(means, "users", "delay", c(2e5, 4e6))
+PlotMetric(m, "users", "delay", c(2e5, 4e6))
 
-PlotConsistComp(t, means, "get", "delay", c(0, 20), PlotFitGet)
-PlotConsistComp(t, means, "upd", "delay", c(0,450), PlotFitUpd)
-PlotConsistComp(t, means, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+PlotConsistComp(t, m, "get", "delay", c(0, 20), PlotFitGet)
+PlotConsistComp(t, m, "upd", "delay", c(0,450), PlotFitUpd)
+PlotConsistComp(t, m, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
