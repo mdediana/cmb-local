@@ -34,6 +34,7 @@ skip() {
 
 latency() {
   local file=$1
+  # us -> ms
   [[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1
   echo $lat
 }
