@@ -23,7 +23,7 @@ def load_latencies(f)
       :header_converters => lambda { |h| h.strip.to_sym },
       :converters => :numeric) do | row |
     [:elapsed, :n, :errors].each { |k| h[k] = row[k] }
-    h[:mean] = row[:mean] / 1000 # ms -> s
+    h[:mean] = row[:mean] / 1e6 # us -> s
   end
   h
 end
@@ -84,7 +84,7 @@ CSV.open("#{parent}/#{d}.csv", "w") do |csv|
     get = v[:get]; upd = v[:upd]
 
     n = get[:n] + upd[:n]
-    tp = n.to_f / get[:elapsed]
+    tp = n.to_f / get[:elapsed] # same as upd[:elapsed]
     confl = metrics[:conflicts].to_f / get[:n]
     mig = conf[:rw_ratio] == "1:0" ? 0 : metrics[:migrations].to_f / upd[:n]
     err = (get[:errors] + upd[:errors]).to_f / n
