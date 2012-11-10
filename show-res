@@ -35,7 +35,8 @@ skip() {
 latency() {
   local file=$1
   # us -> ms
-  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1
+  #[[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1 # mean
+  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $6 / 1000}' $file) || lat=-1 # median
   echo $lat
 }
 

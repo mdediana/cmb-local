@@ -5,8 +5,19 @@ set -ue
 ((threshold=40*60))
 fend="rennes.g5k"
 
+alarm() {
+  msg=$1
+  echo $msg
+  mplayer -loop 220 alarm.wav &> /dev/null # 220 * 2.7s = 10min
+}
+
 while :; do
   [[ -z $(ssh $fend "oarstat -u | awk 'NR > 2 {print \$5}' | grep R") ]] && echo "No running job" && exit 0
+
+  if [[ -z $(ssh $fend "ls cmb/run-all.log") ]]; then
+    alarm "WARN: no run-all.log"
+    break
+  fi
 
   last_mod=$(ssh $fend "stat -c %y cmb/run-all.log")
   time_mod=$(date -d "$last_mod" +%s)
@@ -15,8 +26,7 @@ while :; do
   echo "Last mod: $last_mod (${dt}s)"
 
   if [[ $dt -gt $threshold ]]; then
-    echo "WARN: run-all halted"
-    mplayer -loop 220 alarm.wav &> /dev/null # 220 * 2.7s = 10min
+    alarm "WARN: run-all halted"
     break
   fi
 

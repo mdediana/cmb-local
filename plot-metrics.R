@@ -20,6 +20,7 @@ COLORS <- hash()  # one color, one consistency model
 COLORS[CS[1]] <- "red"
 COLORS[CS[2]] <- "blue"
 COLORS[CS[3]] <- "green"
+COLORS[CS[4]] <- "orange"
 
 CheckCv <- function(m) {
   limits <- c(0.2, 0.3, 0.4, 0.5)
@@ -151,6 +152,9 @@ for (c in CS) {
     for (l in LS)
       for (p in PS)
         for (d in DS) {
+          if (c == "ev(w2)" && (d == 50 || d == 150 || d == 250))
+            next
+
           # 1 - remove the most distant point from the mean in each scenario
           s <- subset(t, consist == c & r_w == r & loc == l &
                          pop == p & delay == d)
@@ -203,14 +207,18 @@ CheckCv(m)
 PlotAll(t)
 
 PlotMetric(t, "get", "delay", c(0, 2e-2), PlotFitGet)
-PlotMetric(t, "upd", "delay", c(0,4.5e-1), PlotFitUpd)
-PlotMetric(t, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
+PlotMetric(t, "upd", "delay", c(0, 4.5e-1), PlotFitUpd)
+PlotMetric(t, "ops_s", "delay", c(0, 3e4), PlotFitOps_s)
 PlotMetric(t, "confl", "delay", c(0, 1.5e-1), PlotFitConfl)
-PlotMetric(t, "mig", "delay", c(0, 1e-2))
+PlotMetric(t, "mig", "delay", c(0, 1e-1))
 PlotMetric(m, "avg.users", "delay", c(2.5e2, 4e3))
 
 PlotConsistComp(t, m, "get", "delay", c(0, 2e-2), PlotFitGet)
 PlotConsistComp(t, m, "upd", "delay", c(0, 4.5e-1), PlotFitUpd)
-PlotConsistComp(t, m, "ops_s", "delay", c(0,3e4), PlotFitOps_s)
-PlotConsistComp(t, m, "confl", "delay", c(0,2e-1), PlotFitConfl)
+PlotConsistComp(t, m, "ops_s", "delay", c(0, 3e4), PlotFitOps_s)
+PlotConsistComp(t, m, "confl", "delay", c(0, 2e-1), PlotFitConfl)
+
+for (i in 1:4)
+  cat(CS[i], ":", COLORS[[CS[i]]], "\n")
+
 warnings()

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+rm -fr $CMB_HOME/*.png
