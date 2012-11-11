@@ -19,8 +19,10 @@ fi
 site=rennes
 res_dir=res.$res_idx
 
-rsync -avz --delete --exclude latest $site.g5k:$res_dir $CMB_HOME
+#rsync -avz --delete $site.g5k:$res_dir $CMB_HOME
+rsync -avz $site.g5k:$res_dir $CMB_HOME
 echo "Errors:"; egrep -r "\[error\]" $res_dir/*/srv-* || true
 
+$CMB_HOME/index-res $res_dir
 $CMB_HOME/proc-res $res_dir
 $CMB_HOME/csv.rb $res_dir

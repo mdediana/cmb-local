@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(option res_dir cons_range tl_mode_range rw_ratio_range loc_range pop_range delay_range)
+in=(option res_dir consist mode rw_ratio loc pop delay)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -8,28 +8,12 @@ cd $CMB_HOME
 
 option=$1
 res_dir=$2
-cr=$3
-tr=$4
-rr=$5
-lr=$6
-pr=$7
-nr=$8
-
-[[ $tr == "lat" ]] && tr=latest
+shift 2
+pat=$(echo $@ | sed "s/-/.*/g")
 
 param() {
-  local p=$1
+  local d=$1; local p=$2
   grep $p $d/conf_info | cut -d= -f2
-}
-
-skip() {
-  local p=$1; local pr=$2
-  [[ $pr == - ]] && echo false
-  pr_arr=($(echo $pr | tr ',' ' '))
-  for x in ${pr_arr[@]}; do
-    [[ $p == $x ]] && echo false
-  done
-  echo true
 }
 
 latency() {
@@ -52,42 +36,36 @@ dir_f=$param_f"\t%s\n"
 [[ $option == -s ]] && printf $summ_h_f consist r_w loc pop delay ops_s get upd confl mig err
 [[ $option == -d ]] && printf $dir_h_f consist r_w loc pop delay dir
 
-for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
-  [[ ! -e $d/summary.csv ]] && echo "$d: missing summary.csv" && continue
-  [[ ! -e $d/conf_info ]] && echo "$d: missing conf_info" && continue
+for dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
+  [[ ! -e $dir/summary.csv ]] && echo "$dir: missing summary.csv" && continue
+  [[ ! -e $dir/conf_info ]] && echo "$dir: missing conf_info" && continue
 
-  c=$(param consistency)
-  [[ $(skip $c $cr) == true ]] && continue
-  t=$(param tl_mode)
-  [[ $(skip $t $tr) == true ]] && continue
-  [[ $t == latest ]] && t=lat
-  r=$(param rw_ratio)
-  [[ $(skip $r $rr) == true ]] && continue
-  l=$(param locality)
-  [[ $(skip $l $lr) == true ]] && continue
-  p=$(param popularity)
-  [[ $(skip $p $pr) == true ]] && continue
-  n=$(param delay)
-  [[ $(skip $n $nr) == true ]] && continue
+  c=$(param $dir consistency)
+  m=$(param $dir tl_mode)
+  [[ $m == latest ]] && m=lat
+  r=$(param $dir rw_ratio)
+  l=$(param $dir locality)
+  p=$(param $dir popularity)
+  d=$(param $dir delay)
 
   case $option in
-  -r) echo "$c($t),$r,$l ($n)"
-      sed -n '2p' $d/summary.csv
-      sed -n '2p' $d/*_latencies.csv
-      cat $d/metrics;;
-  -s) tp=$(awk 'NR>1 {print $3 / $1}' $d/summary.csv)
-      lat_get=$(latency $d/get_latencies.csv)
-      lat_upd=$(latency $d/update-existing_latencies.csv)
-      total=$(awk -F, 'NR>1 {print $3}' $d/summary.csv)
+  -r) echo "$c($m) $r $l $p $d"
+      sed -n '2p' $dir/summary.csv
+      sed -n '2p' $dir/*_latencies.csv
+      cat $dir/metrics;;
+  -s) tp=$(awk 'NR>1 {print $3 / $1}' $dir/summary.csv)
+      lat_get=$(latency $dir/get_latencies.csv)
+      lat_upd=$(latency $dir/update-existing_latencies.csv)
+      total=$(awk -F, 'NR>1 {print $3}' $dir/summary.csv)
       # conflicts should only take reads into account, but since each write is
       # preceded by a read, total represents the number of reads
-      conf=$(awk -F= -v t="$total" '/conflicts/ {printf 100 * ($2 / t)}' $d/metrics)
-      mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $d/metrics)
-      err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $d/summary.csv)
-      printf $summ_f $c $t $r $l $p $((2*n)) $tp $lat_get $lat_upd $conf $mig $err;;
-  -d) printf $dir_f $c $t $r $l $p $((2*n)) $d;;
-  -m) cache=$(sed -n 's/disk_cache=\(.*\)/\1/p' $d/metrics)
-      echo -e "$c($t)\t$r\t$cache"
+      conf=$(awk -F= -v t="$total" '/conflicts/ {printf 100 * ($2 / t)}' $dir/metrics)
+      mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $dir/metrics)
+      err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $dir/summary.csv)
+      printf $summ_f $c $m $r $l $p $((2*d)) $tp $lat_get $lat_upd $conf $mig $err;;
+  -d) printf $dir_f $c $m $r $l $p $((2*d)) $dir;;
+  -m) cache=$(sed -n 's/disk_cache=\(.*\)/\1/p' $dir/metrics)
+      echo -e "$c($m)\t$r\t$cache"
   esac
 done | sort
 

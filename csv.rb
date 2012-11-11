@@ -3,7 +3,7 @@
 require 'csv'
 
 d = ARGV[0]
-out = "#{d}.csv"
+out = "#{d}/#{d}.csv"
 
 def load_props(f)
   h = Hash.new
@@ -37,7 +37,7 @@ end
 
 scenarios = Hash.new
 Dir.new(d).each do |dd|
-  next if dd == '.' or dd == '..'
+  next if dd == '.' or dd == '..' or not File.directory?("#{d}/#{dd}")
 
   # load
   f = File.join(d, dd, "conf_info")
@@ -76,7 +76,7 @@ end
 
 # print
 parent = File.dirname(d)
-CSV.open("#{parent}/#{d}.csv", "w") do |csv|
+CSV.open("#{parent}/#{out}", "w") do |csv|
   csv << ["consist","r_w", "loc", "pop", "delay",
           "ops_s", "get", "upd", "confl", "mig", "err"]
   scenarios.each_value do |v|

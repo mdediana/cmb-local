@@ -1,0 +1,30 @@
+#!/bin/bash
+
+in=(res_dir)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+
+res_dir=$1
+
+param() {
+  local d=$1; local p=$2
+  grep $p $d/conf_info | cut -d= -f2
+}
+
+idx=$res_dir/idx
+rm -f $idx
+
+for dir in $res_dir/*; do
+  c=$(param $dir consistency)
+  m=$(param $dir tl_mode)
+  [[ $m == latest ]] && m=lat
+  r=$(param $dir rw_ratio)
+  l=$(param $dir locality)
+  p=$(param $dir popularity)
+  d=$(param $dir delay)
+
+  echo $c $m $r $l $p $d $dir >> $idx
+done
+
+exit 0

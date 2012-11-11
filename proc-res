@@ -12,7 +12,7 @@ res_dir=$1
 #rm -fr $test_dir; mkdir $test_dir
 
 for d in $(ls -d $res_dir/* | egrep [0-9]{8}_[0-9]{6}); do
-  #[[ -e $d/summary.csv ]] && continue
+  [[ -e $d/summary.csv ]] && continue
   [[ -z $(ls $d/bch-*) ]] && echo "$d: No bch-*" && continue
   conf=$(ls $d/bch-*/bench.config | head -1)
   duration=$(grep -v % $conf | sed -n 's/{duration, \(.*\)}\./\1/p')
