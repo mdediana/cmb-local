@@ -4,7 +4,8 @@ library(hash)
 
 ts = lapply(1:4, function(i) {
                    order.by = c("consist", "r_w", "loc", "pop", "delay")
-                   fn <- paste("res", i, "csv", sep = '.')
+                   dn <- paste("res", i, sep = '.')
+                   fn <- paste(dn, "res.csv", sep = "/")
                    t <- read.table(fn, header = TRUE, sep = ",")
                    t[do.call(order, t[order.by]), ]
                  })

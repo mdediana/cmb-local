@@ -3,7 +3,7 @@
 require 'csv'
 
 d = ARGV[0]
-out = "#{d}/#{d}.csv"
+out = "#{d}/res.csv"
 
 def load_props(f)
   h = Hash.new
