@@ -1,7 +1,11 @@
 #!/bin/bash
 
-[[ $# -ne 2 ]] && echo "Usage: local2g5k dir_in_workspace site" && exit 1
+in=(dir_in_workspace site)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
 
-rsync -avz --progress --delete $HOME/workspace/$1 $2.g5k:
+dir=$1
+site=$2
+
+rsync -avz --progress --delete $HOME/workspace/$dir $site.g5k:
