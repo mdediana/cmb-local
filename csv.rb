@@ -29,7 +29,7 @@ end
 
 def key(conf)
   k = ""
-  [:consistency, :tl_mode, :rw_ratio, :locality, :popularity,
+  [:consistency, :tl_mode, :w, :rw_ratio, :locality, :popularity,
    :delay].each { | p | k << conf[p] << " " }
   k.strip!
 end
@@ -88,7 +88,9 @@ CSV.open("#{parent}/#{out}", "w") do |csv|
     mig = conf[:rw_ratio] == "1:0" ? 0 : metrics[:migrations].to_f / upd[:n]
     err = (get[:errors] + upd[:errors]).to_f / n
 
-    csv << ["#{conf[:consistency]}(#{conf[:tl_mode]})",
+    mode = "#{conf[:consistency]}#{conf[:w]}" if conf[:consistency] == "ev"
+    mode = conf[:tl_mode] if conf[:consistency] == "tl"
+    csv << [mode,
             conf[:rw_ratio],
             conf[:locality],
             conf[:popularity],

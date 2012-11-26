@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(option res_dir consist mode rw_ratio loc pop delay)
+in=(option res_dir consist w mode rw_ratio loc pop delay)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -13,22 +13,22 @@ pat=$(echo $@ | sed "s/-/.*/g")
 
 param() {
   local d=$1; local p=$2
-  grep $p $d/conf_info | cut -d= -f2
+  grep "$p=" $d/conf_info | cut -d= -f2
 }
 
 latency() {
   local file=$1
   # us -> ms
   #[[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1 # mean
-  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $6 / 1000}' $file) || lat=-1 # median
+  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $6 / 1000}' $file) || lat=-1 #median
   echo $lat
 }
 
-param_h_f="%5s\t%3s\t%3s\t%3s\t%5s"	# header params
-param_f="%2s(%3s)\t%3s\t%3s\t%3s\t%5s"	# values
+param_h_f="%9s\t%3s\t%3s\t%3s\t%5s"	# header params
+param_f="%2s(%1s|%3s)\t%3s\t%3s\t%3s\t%5s"	# values
 
-summ_h_f=$param_h_f"\t%3s\t%7s\t%7s\t%7s\t%7s\t%6s\n"		# header params + results
-summ_f=$param_f"\t%5.0f\t%7.2f\t%7.2f\t%7.4f\t%7.4f\t%6.4f\n"	# values
+summ_h_f=$param_h_f"\t%3s\t%7s\t%7s\t%7s\t%7s\t%6s\n" # header params + results
+summ_f=$param_f"\t%5.0f\t%7.2f\t%7.2f\t%7.4f\t%7.4f\t%6.4f\n" # values
 
 dir_h_f=$param_h_f"\t%s\n"
 dir_f=$param_f"\t%s\n"
@@ -41,6 +41,7 @@ for dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
   [[ ! -e $dir/conf_info ]] && echo "$dir: missing conf_info" && continue
 
   c=$(param $dir consistency)
+  w=$(param $dir w)
   m=$(param $dir tl_mode)
   r=$(param $dir rw_ratio)
   l=$(param $dir locality)
@@ -48,7 +49,7 @@ for dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
   d=$(param $dir delay)
 
   case $option in
-  -r) echo "$c($m) $r $l $p $d"
+  -r) echo "$c($w|$m) $r $l $p $d"
       sed -n '2p' $dir/summary.csv
       sed -n '2p' $dir/*_latencies.csv
       cat $dir/metrics;;
@@ -61,8 +62,8 @@ for dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
       conf=$(awk -F= -v t="$total" '/conflicts/ {printf 100 * ($2 / t)}' $dir/metrics)
       mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $dir/metrics)
       err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $dir/summary.csv)
-      printf $summ_f $c $m $r $l $p $((2*d)) $tp $lat_get $lat_upd $conf $mig $err;;
-  -d) printf $dir_f $c $m $r $l $p $((2*d)) $dir;;
+      printf $summ_f $c $w $m $r $l $p $((2*d)) $tp $lat_get $lat_upd $conf $mig $err;;
+  -d) printf $dir_f $c $w $m $r $l $p $((2*d)) $dir;;
   -m) cache=$(sed -n 's/disk_cache=\(.*\)/\1/p' $dir/metrics)
       echo -e "$c($m)\t$r\t$cache"
   esac

@@ -9,21 +9,22 @@ res_dir=$1
 
 param() {
   local d=$1; local p=$2
-  grep $p $d/conf_info | cut -d= -f2
+  grep "$p=" $d/conf_info | cut -d= -f2
 }
 
 idx=$res_dir/idx
 rm -f $idx
 
-for dir in $res_dir/*; do
+for dir in $(find res/* -maxdepth 0 -type d); do
   c=$(param $dir consistency)
+  w=$(param $dir w)
   m=$(param $dir tl_mode)
   r=$(param $dir rw_ratio)
   l=$(param $dir locality)
   p=$(param $dir popularity)
   d=$(param $dir delay)
 
-  echo $c $m $r $l $p $d $dir >> $idx
+  echo $c $w $m $r $l $p $d $dir >> $idx
 done
 
 exit 0

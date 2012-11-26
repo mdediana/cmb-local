@@ -1,23 +1,23 @@
 #!/bin/bash
 
-in=(res_idx)
+in=(site res_idx)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
 cd $CMB_HOME
 
-res_idx=$1
+site=$1
+res_idx=$2
 
 if [[ $res_idx == "all" ]]; then
   for i in {1..4}; do
     echo "get-res $i"
-    $CMB_HOME/get-res $i &
+    $CMB_HOME/get-res $site $i &
   done; wait
   exit 0
 fi
 
-site=rennes
-res_dir=res.$res_idx
+[[ $res_idx == - ]] && res_dir=res || res_dir=res.$res_idx
 
 #rsync -avz --delete $site.g5k:$res_dir $CMB_HOME
 rsync -avz $site.g5k:$res_dir $CMB_HOME
