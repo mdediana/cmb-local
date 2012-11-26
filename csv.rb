@@ -11,7 +11,6 @@ def load_props(f)
     kv = l.chomp.split('=')
     h[kv[0].to_sym] = kv[1]
   end
-  h[:tl_mode] = "lat" if h[:tl_mode] == "latest"
   h[:delay] = (2 * h[:delay].to_i).to_s # rtt delay
   h
 end

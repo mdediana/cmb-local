@@ -42,7 +42,6 @@ for dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
 
   c=$(param $dir consistency)
   m=$(param $dir tl_mode)
-  [[ $m == latest ]] && m=lat
   r=$(param $dir rw_ratio)
   l=$(param $dir locality)
   p=$(param $dir popularity)

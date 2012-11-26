@@ -18,7 +18,6 @@ rm -f $idx
 for dir in $res_dir/*; do
   c=$(param $dir consistency)
   m=$(param $dir tl_mode)
-  [[ $m == latest ]] && m=lat
   r=$(param $dir rw_ratio)
   l=$(param $dir locality)
   p=$(param $dir popularity)
