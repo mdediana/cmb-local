@@ -2,8 +2,14 @@
 
 require 'csv'
 
+if ARGV.length != 1
+  puts "Usage: #{$0} res_dir"
+  exit(1)
+end
+
 d = ARGV[0]
-out = "#{d}/res.csv"
+summ = "#{d}/summary.csv"
+perc = "#{d}/percentiles.csv"
 
 def load_props(f)
   h = Hash.new
@@ -34,24 +40,33 @@ def key(conf)
   k.strip!
 end
 
+def mode(conf)
+  conf[:consistency] == "ev" ? "#{conf[:consistency]}#{conf[:w]}" :
+                               conf[:tl_mode]
+end
+
 scenarios = Hash.new
 Dir.new(d).each do |dd|
   next if dd == '.' or dd == '..' or not File.directory?("#{d}/#{dd}")
 
   # load
-  f = File.join(d, dd, "conf_info")
-  conf = load_props(f)
-  f = File.join(d, dd, "metrics")
-  metrics = load_props(f)
-  f = File.join(d, dd, "get_latencies.csv")
-  get = load_latencies(f) unless conf[:rw_ratio] == "0:1"
-  f = File.join(d, dd, "update-existing_latencies.csv")
-  upd = load_latencies(f) unless conf[:rw_ratio] == "1:0"
+  conf = load_props(File.join(d, dd, "conf_info"))
+  metrics = load_props(File.join(d, dd, "metrics"))
+  unless conf[:rw_ratio] == "0:1"
+    get = load_latencies(File.join(d, dd, "get_latencies.csv"))
+    get_perc = IO.readlines(File.join(d, dd, "get_percentiles.csv"))[-1].chomp
+  end
+  unless conf[:rw_ratio] == "1:0"
+    upd = load_latencies(File.join(d, dd, "update-existing_latencies.csv"))
+    upd_perc = IO.readlines(
+            File.join(d, dd, "update-existing_percentiles.csv"))[-1].chomp
+  end
 
   # adjust
   if conf[:rw_ratio] == "1:0"
     upd = { :elapsed => 0, :n => 0, :mean => 0, :errors => 0 }
-  elsif conf[:rw_ratio] == "0:1" # do nothing, see below
+  elsif
+    conf[:rw_ratio] == "0:1" # do nothing, see below
   else
     upd[:mean] -= get[:mean]
     get[:n] += upd[:n]
@@ -60,7 +75,8 @@ Dir.new(d).each do |dd|
   end
 
   scenarios[key(conf)] = { :conf => conf, :metrics => metrics,
-                           :get => get, :upd => upd }
+                           :get => get, :upd => upd,
+                           :get_perc => get_perc, :upd_perc => upd_perc }
 end
 
 # adjust 0:1
@@ -73,9 +89,9 @@ scenarios.each do |k, v|
   v[:conf][:rw_ratio] = "1:1"
 end
 
-# print
+# write summary
 parent = File.dirname(d)
-CSV.open("#{parent}/#{out}", "w") do |csv|
+CSV.open("#{parent}/#{summ}", "w") do |csv|
   csv << ["consist","r_w", "loc", "pop", "delay",
           "ops_s", "get", "upd", "confl", "mig", "err"]
   scenarios.each_value do |v|
@@ -88,9 +104,7 @@ CSV.open("#{parent}/#{out}", "w") do |csv|
     mig = conf[:rw_ratio] == "1:0" ? 0 : metrics[:migrations].to_f / upd[:n]
     err = (get[:errors] + upd[:errors]).to_f / n
 
-    mode = "#{conf[:consistency]}#{conf[:w]}" if conf[:consistency] == "ev"
-    mode = conf[:tl_mode] if conf[:consistency] == "tl"
-    csv << [mode,
+    csv << [mode(conf),
             conf[:rw_ratio],
             conf[:locality],
             conf[:popularity],
@@ -101,5 +115,25 @@ CSV.open("#{parent}/#{out}", "w") do |csv|
             confl,
             mig,
             err]
+  end
+end
+
+# write percentiles
+File.open(perc, "w") do |f|
+  # header
+  conf_header = "consist,r_w,loc,pop,delay"
+  perc_header = ""
+  1.upto(99) { |p| perc_header << "p#{p}," }
+  perc_header << "p99.9"
+  f.write("#{conf_header},op,#{perc_header}\n")
+
+  # values
+  scenarios.each_value do |v|
+    conf_csv = "#{mode(v[:conf])},#{v[:conf][:rw_ratio]}," + 
+               "#{v[:conf][:locality]},#{v[:conf][:popularity]}," + 
+               "#{v[:conf][:delay]}"
+
+    f.write("#{conf_csv},get,#{v[:get_perc]}\n") if not v[:get_perc].nil?
+    f.write("#{conf_csv},upd,#{v[:upd_perc]}\n") if not v[:upd_perc].nil?
   end
 end
