@@ -9,14 +9,6 @@ cd $CMB_HOME
 site=$1
 res_dir=$2
 
-if [[ $res_idx == "all" ]]; then
-  for i in {1..4}; do
-    echo "get-res $i"
-    $CMB_HOME/get-res $site $i &
-  done; wait
-  exit 0
-fi
-
 #rsync -avz --delete $site.g5k:$res_dir $CMB_HOME
 rsync -avz $site.g5k:$res_dir $CMB_HOME
 echo "Errors:"; egrep -r "\[error\]" $res_dir/*/srv-* || true
