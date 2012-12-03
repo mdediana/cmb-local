@@ -19,8 +19,8 @@ param() {
 latency() {
   local file=$1
   # us -> ms
-  #[[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1 # mean
-  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $6 / 1000}' $file) || lat=-1 #median
+  [[ -e $file ]] && lat=$(awk 'NR>1 {printf $5 / 1000}' $file) || lat=-1 # mean
+  #[[ -e $file ]] && lat=$(awk 'NR>1 {printf $6 / 1000}' $file) || lat=-1 #median
   echo $lat
 }
 
@@ -36,7 +36,8 @@ dir_f=$param_f"\t%s\n"
 [[ $option == -s ]] && printf $summ_h_f consist r_w loc pop delay ops_s get upd confl mig err
 [[ $option == -d ]] && printf $dir_h_f consist r_w loc pop delay dir
 
-for dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
+for idx_dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
+  dir=$res_dir/$idx_dir
   [[ ! -e $dir/summary.csv ]] && echo "$dir: missing summary.csv" && continue
   [[ ! -e $dir/conf_info ]] && echo "$dir: missing conf_info" && continue
 

@@ -24,7 +24,7 @@ for dir in $(find $res_dir/* -maxdepth 0 -type d); do
   p=$(param $dir popularity)
   d=$(param $dir delay)
 
-  echo $c $w $m $r $l $p $d $dir >> $idx
+  echo $c $w $m $r $l $p $d $(basename $dir) >> $idx
 done
 
 exit 0
