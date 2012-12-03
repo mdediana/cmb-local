@@ -6,6 +6,7 @@
 
 dir <- commandArgs(trailingOnly = TRUE)[2]
 fn <- paste(dir, "summary.csv", sep = "/")
+#fn <- paste(dir, "percentiles.csv", sep = "/")
 t <- read.table(fn, header = TRUE, sep = ",")
 # Important: t must be ordered in a way that match sign table.
 # It works, but it's more reliable if the sign table is built
@@ -14,12 +15,21 @@ t <- t[with(t, order(consist, delay, pop, loc, r_w)), ]
 
 cat("Factors:", colnames(t)[2:5], "\n")
 
-for (c in levels(t$consist)) {
-  y <- apply(subset(t, consist == c), 1, function(x) {
+SelectYMean <- function(c) {
+  apply(subset(t, consist == c), 1, function(x) {
     rw <- as.numeric(unlist(strsplit(x[2], ":")))
     get.upd = as.numeric(c(x[7], x[8]))
     weighted.mean(get.upd, c(rw[1], rw[2]))
   })
+}
+
+SelectYPerc <- function(c, o, p) {
+  subset(t, consist == c & op == o)[[p]]
+}
+
+for (c in levels(t$consist)) {
+  y <- SelectYMean(c) 
+  #y <- SelectYPerc(c, "get", "p75")
 
   #
   k <- log2(length(y))
