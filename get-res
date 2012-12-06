@@ -9,10 +9,23 @@ cd $CMB_HOME
 site=$1
 res_dir=$2
 
-#rsync -avz --delete $site.g5k:$res_dir $CMB_HOME
-rsync -avz $site.g5k:$res_dir $CMB_HOME
-echo "Errors:"; egrep -r "\[error\]" $res_dir/*/srv-* || true
+rsync -avz --delete $site.g5k:$res_dir $CMB_HOME
+#rsync -avz $site.g5k:$res_dir $CMB_HOME
 
+# index before checking for errors to easen debugging
 $CMB_HOME/index-res $res_dir
+
+set +e
+egrep -v "error\",\"count" res/*.log | grep -v errors.csv: | \
+grep -v Errors: | grep -v "Warning: Permanently" | egrep -i "error|warn"
+[[ $? -eq 0 ]] && echo Errors found in campaign logs && exit 1
+
+[[ -n $(cat $res_dir/*/bch-*/log.txt) ]] && \
+    echo Errors found in campaign logs && exit 1
+
+egrep -r "\[error\]" $res_dir/*/srv-*
+[[ $? -eq 0 ]] && echo Errors found in srvs logs && exit 1
+set -e
+
 $CMB_HOME/proc-res $res_dir
 $CMB_HOME/csv.rb $res_dir
