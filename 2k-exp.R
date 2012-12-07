@@ -27,9 +27,14 @@ SelectYPerc <- function(c, o, p) {
   subset(t, consist == c & op == o)[[p]]
 }
 
+SelectOps_s <- function(c) {
+  subset(t, consist == c)[["ops_s"]]
+}
+
 for (c in levels(t$consist)) {
-  y <- SelectYMean(c) 
-  #y <- SelectYPerc(c, "get", "p75")
+  y <- SelectYMean(c)
+  #y <- SelectYPerc(c, "upd", "p75")
+  #y <- SelectOps_s(c)
 
   #
   k <- log2(length(y))

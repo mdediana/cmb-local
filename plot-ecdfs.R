@@ -2,7 +2,7 @@
 
 library(hash)
 
-t <- read.table("res.1/percentiles.csv", header = TRUE, sep = ",")
+t <- read.table("res/percentiles.csv", header = TRUE, sep = ",")
 t <- t[with(t, order(consist, r_w, loc, pop, delay)), ]
 
 for (c in levels(t$consist)) {
@@ -14,13 +14,13 @@ for (c in levels(t$consist)) {
     apply(subset(t, consist == c & op == o),
           1,
           function(row) {
-            gname <- paste(row[3], row[4], row[5], row[6])
+            gname <- paste(row[2], row[3], row[4], row[5], row[6])
 
             s <- row[-c(1:6)]
             s <- as.numeric(s) / 1e3	# us -> ms
 
             plot.ecdf(data.matrix(s), main = gname, cex = 0.2, col = "red",
-                      xlim = c(0, 2e3), xlab = paste(o, " (ms)"))
+                      xlim = c(0, 1.5e3), xlab = paste(o, " (ms)"))
             #hist(t(s)[, 1], main = gname, col = "lightblue")
         })
     graphics.off()
