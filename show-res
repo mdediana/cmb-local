@@ -64,9 +64,7 @@ for idx_dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
       mig=$(awk -F= -v t="$total" '/migrations/ {printf 100 * ($2 / t)}' $dir/metrics)
       err=$(awk -F, -v t="$total" 'NR>1 {printf 100 * ($5 / t)}' $dir/summary.csv)
       printf $summ_f $c $w $m $r $l $p $((2*d)) $tp $lat_get $lat_upd $conf $mig $err;;
-  -d) printf $dir_f $c $w $m $r $l $p $((2*d)) $dir;;
-  -m) cache=$(sed -n 's/disk_cache=\(.*\)/\1/p' $dir/metrics)
-      echo -e "$c($m)\t$r\t$cache"
+  -d) printf $dir_f $c $w $m $r $l $p $((2*d)) $dir
   esac
 done | sort
 
