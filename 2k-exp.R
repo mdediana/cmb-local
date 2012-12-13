@@ -3,44 +3,10 @@
 # test - Raj Jain - Table 17.9
 #y <- c(14, 22, 10, 34, 46, 58, 50, 86) 
 #fraction.ss.percent <- c(18  4 71  4  1  2  0)
-
-dir <- commandArgs(trailingOnly = TRUE)[2]
-fn <- paste(dir, "summary.csv", sep = "/")
-#fn <- paste(dir, "percentiles.csv", sep = "/")
-t <- read.table(fn, header = TRUE, sep = ",")
-# Important: t must be ordered in a way that match sign table.
-# It works, but it's more reliable if the sign table is built
-# directly from t instead of depending on its order
-t <- t[with(t, order(consist, delay, pop, loc, r_w)), ]
-
-cat("Factors:", colnames(t)[2:5], "\n")
-
-SelectYMean <- function(c) {
-  apply(subset(t, consist == c), 1, function(x) {
-    rw <- as.numeric(unlist(strsplit(x[2], ":")))
-    get.upd = as.numeric(c(x[7], x[8]))
-    weighted.mean(get.upd, c(rw[1], rw[2]))
-  })
-}
-
-SelectYPerc <- function(c, o, p) {
-  subset(t, consist == c & op == o)[[p]]
-}
-
-SelectOps_s <- function(c) {
-  subset(t, consist == c)[["ops_s"]]
-}
-
-for (c in levels(t$consist)) {
-  y <- SelectYMean(c)
-  #y <- SelectYPerc(c, "upd", "p75")
-  #y <- SelectOps_s(c)
-
-  #
+Variation <- function(y) {
   k <- log2(length(y))
   m <- matrix(, 2^k)
   factor.cols <- 2:(k + 1)
-  cat("c =", c, "k =", k, "\n")
 
   # I
   m[, 1] <- 1
@@ -71,6 +37,38 @@ for (c in levels(t$consist)) {
   stopifnot(all.equal(sst, sum((y - mean(y))^2), 1e-4))
   fraction.ss <- ss / sst
   fraction.ss.percent <- 100 * round(fraction.ss, 2)
-  print(fraction.ss.percent)
+  fraction.ss.percent
   #print(fraction.ss)
+}
+
+ReadTable <- function(dir, fn) {
+  f <- paste(dir, fn, sep = "/")
+  t <- read.table(f, header = TRUE, sep = ",")
+  # Important: t must be ordered in a way that match sign table.
+  # It works, but it's more reliable if the sign table is built
+  # directly from t instead of depending on its order
+  t[with(t, order(consist, delay, pop, loc, r_w)), ]
+}
+
+dir <- commandArgs(trailingOnly = TRUE)[2]
+t.s <- ReadTable(dir, "summary.csv")
+t.p <- ReadTable(dir, "percentiles.csv")
+
+cat("Factors:", colnames(t.s)[2:5], "\n")
+for (c in levels(t.s$consist)) {
+  cat("c =", c, "\n")
+
+  y <- apply(subset(t.s, consist == c), 1, function(x) {
+    rw <- as.numeric(unlist(strsplit(x[2], ":")))
+    get.upd = as.numeric(c(x[7], x[8]))
+    weighted.mean(get.upd, c(rw[1], rw[2]))
+  })
+  cat("Mean:", Variation(y), '\n')
+
+  s <- subset(t.p, consist == c & op == "get")
+  cat("get - p25:", Variation(s[["p25"]]), '\n')
+  cat("get - p75:", Variation(s[["p75"]]), '\n')
+  s <- subset(t.p, consist == c & op == "upd")
+  cat("upd - p25:", Variation(s[["p25"]]), '\n')
+  cat("upd - p75:", Variation(s[["p75"]]), '\n')
 }
