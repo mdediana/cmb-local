@@ -55,7 +55,7 @@ for idx_dir in $(sed -n "/$pat/s/$pat //p" $res_dir/idx); do
       sed -n '2p' $dir/*_latencies.csv
       cat $dir/metrics;;
   -s) tp=$(awk 'NR>1 {print $3 / $1}' $dir/summary.csv)
-      lat_get=$(latency $dir/get_latencies.csv)
+      lat_get=$(latency $dir/get-existing_latencies.csv)
       lat_upd=$(latency $dir/update-existing_latencies.csv)
       total=$(awk -F, 'NR>1 {print $3}' $dir/summary.csv)
       # conflicts should only take reads into account, but since each write is

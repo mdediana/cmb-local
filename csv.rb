@@ -70,8 +70,8 @@ Dir.new(d).each do |dd|
   conf = load_props(File.join(d, dd, "conf_info"))
   metrics = load_props(File.join(d, dd, "metrics"))
   unless conf[:rw_ratio] == "0:1"
-    get = load_latencies(File.join(d, dd, "get_latencies.csv"))
-    get_perc = load_percs(File.join(d, dd, "get_percentiles.csv"))
+    get = load_latencies(File.join(d, dd, "get-existing_latencies.csv"))
+    get_perc = load_percs(File.join(d, dd, "get-existing_percentiles.csv"))
   end
   unless conf[:rw_ratio] == "1:0"
     upd = load_latencies(File.join(d, dd, "update-existing_latencies.csv"))

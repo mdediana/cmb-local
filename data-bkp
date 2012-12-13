@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -ue
+
+site=sophia
+src=$HOME/workspace/exp-data
+rsync -avz --delete --progress $src $site.g5k:
