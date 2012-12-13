@@ -5,6 +5,6 @@ set -ue
 site=$1
 dst=$HOME/workspace
 
-for d in cmb g5k-scripts images res-archive; do
+for d in g5k-scripts images; do
   rsync -avz --delete --progress $site.g5k:$d $dst
 done
