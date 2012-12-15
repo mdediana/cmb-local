@@ -81,7 +81,12 @@ Dir.new(d).each do |dd|
   # adjust
   if conf[:rw_ratio] == "1:0"
     upd = { :elapsed => 0, :n => 0, :mean => 0, :errors => 0 }
-    upd_perc = Array.new(k_percs.size, 0.0)
+    upd_perc = Array.new(k_perc.size, 0.0)
+  elsif conf[:rw_ratio] == "0:1"
+    # a bit of lying since there is a get for every update
+    get = { :elapsed => 0, :n => 0, :mean => 0, :errors => 0 }
+    get_perc = Hash.new
+    k_perc.each { |k| get_perc[k] = 0.0 }
   else
     get[:n] += upd[:n]
     r, w = conf[:rw_ratio].split(':')

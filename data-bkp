@@ -3,5 +3,11 @@
 set -ue
 
 site=sophia
-src=$HOME/workspace/exp-data
-rsync -avz --delete --progress $src $site.g5k:
+
+# real sync
+data_dir=$HOME/workspace/exp-data
+rsync -avz --delete --progress $data_dir $site.g5k:
+
+# archive (no --delete)
+unused_dir=$HOME/workspace/unused-data
+rsync -avz --progress $unused_dir $site.g5k:
