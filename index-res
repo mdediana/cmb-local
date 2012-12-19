@@ -16,15 +16,14 @@ idx=$res_dir/idx
 rm -f $idx
 
 for dir in $(find $res_dir/* -maxdepth 0 -type d); do
-  c=$(param $dir consistency)
-  w=$(param $dir w)
-  m=$(param $dir tl_mode)
-  r=$(param $dir rw_ratio)
-  l=$(param $dir locality)
-  p=$(param $dir popularity)
-  d=$(param $dir delay)
+  k=""
+  for p in consistency w tl_mode locality popularity rw_ratio delay delay_var \
+           delay_corr loss dupl corrupt reorder reorder_corr congest; do
+    v=$(param $dir $p)
+    k+=" "$v
+  done
 
-  echo $c $w $m $r $l $p $d $(basename $dir) >> $idx
+  echo $k $(basename $dir) >> $idx
 done
 
 exit 0

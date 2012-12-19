@@ -11,13 +11,19 @@ d = ARGV[0]
 summ = "#{d}/summary.csv"
 perc = "#{d}/percentiles.csv"
 
+FACTORS = [:consistency, :tl_mode, :w, :rw_ratio, :locality, :popularity,
+           :delay, :delay_var, :delay_corr, :loss, :dupl, :corrupt, :reorder,
+           :reorder_corr, :congest]
+
 def load_props(f)
   h = Hash.new
   File.read(f).each_line do |l|
     kv = l.chomp.split('=')
     h[kv[0].to_sym] = kv[1]
   end
-  h[:delay] = (2 * h[:delay].to_i).to_s # rtt delay
+  # to_f.to_i: delay_var is a fraction of delay (5% of 150 is 7.5), so we
+  # first compute the rtt and then truncate
+  [:delay, :delay_var].each { |k| h[k] = (2 * h[k].to_f).to_i.to_s } #rtt delay
   h
 end
 
@@ -38,7 +44,7 @@ def load_percs(f)
   CSV.foreach(f,
       :headers => :true,
       :header_converters => lambda { |h| h.strip.to_sym },
-      :converters => :numeric) do | row |
+      :converters => :numeric) do |row|
     k_perc.each { |k| h[k] = row[k].to_f / 1e6 } # us -> s
   end
   h
@@ -52,14 +58,20 @@ end
 
 def key(conf)
   k = ""
-  [:consistency, :tl_mode, :w, :rw_ratio, :locality, :popularity,
-   :delay].each { | p | k << conf[p] << " " }
+  FACTORS.each { |f| k << conf[f] << " " }
   k.strip!
 end
 
 def mode(conf)
   conf[:consistency] == "ev" ? "#{conf[:consistency]}#{conf[:w]}" :
                                conf[:tl_mode]
+end
+
+def factor_header()
+  short = { "consistency" => "consist", "rw_ratio" => "rw",
+            "locality" => "loc", "popularity" => "pop" }
+  header = (FACTORS - [:tl_mode, :w]).map { |f| f.to_s }
+  header.map! { |f| short[f].nil? ? f : short[f] }
 end
 
 scenarios = Hash.new
@@ -101,8 +113,7 @@ end
 # write summary
 parent = File.dirname(d)
 CSV.open("#{parent}/#{summ}", "w") do |csv|
-  csv << ["consist","r_w", "loc", "pop", "delay",
-          "ops_s", "get", "upd", "confl", "mig", "err"]
+  csv << factor_header + ["ops_s", "get", "upd", "confl", "mig", "err"]
   scenarios.each_value do |v|
     conf = v[:conf]; metrics = v[:metrics]
     get = v[:get]; upd = v[:upd]
@@ -113,12 +124,10 @@ CSV.open("#{parent}/#{summ}", "w") do |csv|
     mig = conf[:rw_ratio] == "1:0" ? 0 : metrics[:migrations].to_f / upd[:n]
     err = (get[:errors] + upd[:errors]).to_f / n
 
-    csv << [mode(conf),
-            conf[:rw_ratio],
-            conf[:locality],
-            conf[:popularity],
-            conf[:delay],
-            tp,
+    factor_vs = (FACTORS - [:consistency, :w, :tl_mode]).map { |f| conf[f] }
+    csv << [mode(conf)] +
+           factor_vs +
+           [tp,
             get[:mean],
             upd[:mean],
             confl,
@@ -130,17 +139,17 @@ end
 # write percentiles
 parent = File.dirname(d)
 CSV.open("#{parent}/#{perc}", "w") do |csv|
-  csv << ["consist","r_w", "loc", "pop", "delay", "op"] + k_perc
+  csv << factor_header + ["op"] + k_perc
   scenarios.each_value do |v|
     conf = v[:conf]
     get_perc = v[:get_perc]; upd_perc = v[:upd_perc]
+
     { "get" => v[:get_perc], "upd" => v[:upd_perc] }.each do |op, perc|
-      csv << [mode(conf),
-              conf[:rw_ratio],
-              conf[:locality],
-              conf[:popularity],
-              conf[:delay],
-              op] + perc.values
+      factor_vs = (FACTORS - [:consistency, :w, :tl_mode]).map { |f| conf[f] }
+      csv << [mode(conf)] +
+             factor_vs +
+             [op] +
+             perc.values
     end
   end
 end
