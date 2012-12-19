@@ -16,16 +16,23 @@ rsync -avz --delete $site.g5k:$res_dir $CMB_HOME
 $CMB_HOME/index-res $res_dir
 
 set +e
+err=false
 egrep -v "error\",\"count" res/*.log | grep -v errors.csv: | \
 grep -v Errors: | grep -v "Warning: Permanently" | egrep -i "error|warn"
-[[ $? -eq 0 ]] && echo Errors found in campaign logs && exit 1
+[[ $? -eq 0 ]] && echo Errors found in campaign logs && err=true
 
 [[ -n $(cat $res_dir/*/bch-*/log.txt) ]] && \
-    echo Errors found in campaign logs && exit 1
+    echo Errors found in bench logs && err=true
 
 egrep -r "\[error\]" $res_dir/*/srv-*
-[[ $? -eq 0 ]] && echo Errors found in srvs logs && exit 1
+[[ $? -eq 0 ]] && echo Errors found in srvs logs && err=true
 set -e
 
-$CMB_HOME/proc-res $res_dir
-$CMB_HOME/csv.rb $res_dir
+proceed=y
+[[ $err == true ]] && echo -n "Proceed? "; read proceed
+if [[ $proceed == y ]]; then
+  echo Processing
+  $CMB_HOME/proc-res $res_dir
+  echo Creating CSV
+  $CMB_HOME/csv.rb $res_dir
+fi

@@ -1,13 +1,14 @@
 #!/bin/bash
 
+in=(site)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
 set -ue
 
-site=sophia
+site=$1
 
-# real sync
 data_dir=$HOME/workspace/exp-data
-rsync -avz --delete --progress $data_dir $site.g5k:
-
-# archive (no --delete)
 unused_dir=$HOME/workspace/unused-data
-rsync -avz --progress $unused_dir $site.g5k:
+
+rsync -avz --delete --progress $data_dir $site.g5k:
+rsync -avz --delete --progress $unused_dir $site.g5k:
