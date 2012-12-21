@@ -29,7 +29,7 @@ egrep -r "\[error\]" $res_dir/*/srv-*
 set -e
 
 proceed=y
-[[ $err == true ]] && echo -n "Proceed? "; read proceed
+[[ $err == true ]] && echo -n "Proceed? " && read proceed
 if [[ $proceed == y ]]; then
   echo Processing
   $CMB_HOME/proc-res $res_dir

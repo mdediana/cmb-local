@@ -13,7 +13,7 @@ perc = "#{d}/percentiles.csv"
 
 FACTORS = [:consistency, :tl_mode, :w, :rw_ratio, :locality, :popularity,
            :delay, :delay_var, :delay_corr, :loss, :dupl, :corrupt, :reorder,
-           :reorder_corr, :congest]
+           :reorder_corr, :congest, :mem_max]
 
 def load_props(f)
   h = Hash.new
@@ -68,7 +68,7 @@ def mode(conf)
 end
 
 def factor_header()
-  short = { "consistency" => "consist", "rw_ratio" => "rw",
+  short = { "consistency" => "consist", "rw_ratio" => "r_w",
             "locality" => "loc", "popularity" => "pop" }
   header = (FACTORS - [:tl_mode, :w]).map { |f| f.to_s }
   header.map! { |f| short[f].nil? ? f : short[f] }

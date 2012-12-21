@@ -2,7 +2,8 @@
 
 library(hash)
 
-t <- read.table("res/percentiles.csv", header = TRUE, sep = ",")
+dir <- commandArgs(trailingOnly = T)[2]
+t <- read.table(paste(dir, "percentiles.csv", sep = '/'), T, ',')
 t <- t[with(t, order(consist, r_w, loc, pop, delay)), ]
 
 for (c in levels(t$consist)) {
@@ -19,7 +20,8 @@ for (c in levels(t$consist)) {
             s <- as.numeric(row[-c(1:6)])
 
             plot.ecdf(data.matrix(s), main = gname, cex = 0.2, col = "red",
-                      xlim = c(0, 1.5), xlab = paste(o, " (s)"))
+                      #xlim = c(0, 1.5), xlab = paste(o, " (s)"))
+                      xlim = c(0, 1e-2), xlab = paste(o, " (s)"))
             delay = as.numeric(row[5]) / 1e3	# ms -> s
             abline(v = delay, lty = "dotted")
             abline(h = row[3], lty = "dotted")
