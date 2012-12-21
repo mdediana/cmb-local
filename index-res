@@ -17,8 +17,9 @@ rm -f $idx
 
 for dir in $(find $res_dir/* -maxdepth 0 -type d); do
   k=""
+  # see the list of actually used factors in csv.rb
   for p in consistency w tl_mode locality popularity rw_ratio delay delay_var \
-           delay_corr loss dupl corrupt reorder reorder_corr congest; do
+           loss dupl corrupt reorder; do
     v=$(param $dir $p)
     k+=" "$v
   done

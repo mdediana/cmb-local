@@ -11,9 +11,10 @@ d = ARGV[0]
 summ = "#{d}/summary.csv"
 perc = "#{d}/percentiles.csv"
 
-FACTORS = [:consistency, :tl_mode, :w, :rw_ratio, :locality, :popularity,
-           :delay, :delay_var, :delay_corr, :loss, :dupl, :corrupt, :reorder,
-           :reorder_corr, :congest, :mem_max]
+# Actually used:
+# :consistency, :tl_mode, :w, :rw_ratio, :locality, :delay, :delay_var, :loss
+FACTORS = [:consistency, :tl_mode, :w, :locality, :popularity, :rw_ratio,
+           :delay, :delay_var, :loss, :dupl, :corrupt, :reorder]
 
 def load_props(f)
   h = Hash.new
@@ -21,9 +22,7 @@ def load_props(f)
     kv = l.chomp.split('=')
     h[kv[0].to_sym] = kv[1]
   end
-  # to_f.to_i: delay_var is a fraction of delay (5% of 150 is 7.5), so we
-  # first compute the rtt and then truncate
-  [:delay, :delay_var].each { |k| h[k] = (2 * h[k].to_f).to_i.to_s } #rtt delay
+  h[:delay] = (2 * h[:delay].to_i).to_s # rtt delay
   h
 end
 
