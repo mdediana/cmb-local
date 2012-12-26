@@ -129,6 +129,21 @@ ByWorkloadSumm <- function(t) {
   }
 }
 
+BySize <- function(t) {
+  factors <- c("servers", "clients", "conc", "total_keys")
+  cat("Factors:", factors, "\n")
+
+  t <- t[with(t, order(servers, clients, conc, total_keys)), ]
+  s <- subset(t, op == "get")
+  m <- SignMatrix(s, factors)
+  cat("get - p20:", Variation(m, s[["p20"]]), '\n')
+  cat("get - p80:", Variation(m, s[["p80"]]), '\n')
+  
+  s <- subset(t, op == "upd")
+  m <- SignMatrix(s, factors)
+  cat("upd - p20:", Variation(m, s[["p20"]]), '\n')
+  cat("upd - p80:", Variation(m, s[["p80"]]), '\n')
+}
 dir <- commandArgs(trailingOnly = T)[2]
 t.s <- read.table(paste(dir, "summary.csv", sep = '/'), T, ',')
 t.p <- read.table(paste(dir, "percentiles.csv", sep = '/'), T, ',')
@@ -136,4 +151,5 @@ t.p <- read.table(paste(dir, "percentiles.csv", sep = '/'), T, ',')
 #ByBDP(t.p)
 #ByWorkloadSumm(t.s)
 #ByWorkloadPerc(t.p)
-ByNet(t.p)
+#ByNet(t.p)
+BySize(t.p)

@@ -13,8 +13,9 @@ perc = "#{d}/percentiles.csv"
 
 # Actually used:
 # :consistency, :tl_mode, :w, :rw_ratio, :locality, :delay, :delay_var, :loss
-FACTORS = [:consistency, :tl_mode, :w, :locality, :popularity, :rw_ratio,
-           :delay, :delay_var, :loss, :dupl, :corrupt, :reorder]
+FACTORS = [:consistency, :tl_mode, :w, :rw_ratio, :locality, :popularity,
+           :delay, :delay_var, :loss, :dupl, :corrupt, :reorder,
+           :servers, :clients, :total_keys, :conc]
 
 def load_props(f)
   h = Hash.new
@@ -88,6 +89,12 @@ Dir.new(d).each do |dd|
     upd = load_latencies(File.join(d, dd, "update-existing_latencies.csv"))
     upd_perc = load_percs(File.join(d, dd, "update-existing_percentiles.csv"))
   end
+
+  # get concurrent (use any bench.config to get concurrent)
+  lines = File.readlines(
+      File.join(d, dd, "bench.config.sol-6.sophia.grid5000.fr"))
+  conc_line = lines.select { |l| l[/concurrent/] }
+  conf[:conc] = conc_line[0].chomp.slice(-4..-3)
 
   # adjust
   if conf[:rw_ratio] == "1:0"
