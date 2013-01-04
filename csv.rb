@@ -14,7 +14,8 @@ perc = "#{d}/percentiles.csv"
 # Actually used:
 # :consistency, :tl_mode, :w, :rw_ratio, :locality, :delay, :delay_var, :loss
 FACTORS = [:consistency, :tl_mode, :w, :locality, :popularity, :rw_ratio,
-           :delay, :delay_var, :loss, :dupl, :corrupt, :reorder]
+           :delay, :delay_var, :loss, :dupl, :corrupt, :reorder,
+           :object_size, :total_keys]
 
 def load_props(f)
   h = Hash.new

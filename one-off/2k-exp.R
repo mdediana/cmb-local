@@ -50,6 +50,22 @@ Variation <- function(m, y) {
   fraction.ss.percent
 }
 
+CV <- function(y) {
+  sd(y) / mean(y)
+}
+
+VariationFromPercs <- function(op, perc.colnames, s, factors) {
+  m <- SignMatrix(s, factors)
+  for (p in perc.colnames)
+    cat(op, '-', p, ':', Variation(m, s[[p]]), "\t| CV = ", CV(s[[p]]), '\n')
+}
+
+VariationFromSumm <- function(colname, s, factors) {
+  m <- SignMatrix(s, factors)
+  cat(colname, ':', Variation(m, s[[colname]]), "\t| CV = ",
+      CV(s[[colname]]), '\n')
+}
+
 ByBDP <- function(t) {
   bdp <- (t$delay / 2 * 1e-3) * (1024^3 / 8) 	# delay rtt (ms) / 1Gb/s
   t$factor.bdp <- round(t$mem_max / bdp)	# mem_max = n * bdp
@@ -59,14 +75,10 @@ ByBDP <- function(t) {
   
   t <- t[with(t, order(delay, reorder, factor.bdp)), ]
   s <- subset(t, op == "get")
-  m <- SignMatrix(s, factors)
-  cat("get - p20:", Variation(m, s[["p20"]]), '\n')
-  cat("get - p80:", Variation(m, s[["p80"]]), '\n')
+  VariationFromPercs("get", c("p20", "p80"), s, factors)
   
   s <- subset(t, op == "upd")
-  m <- SignMatrix(s, factors)
-  cat("upd - p20:", Variation(m, s[["p20"]]), '\n')
-  cat("upd - p80:", Variation(m, s[["p80"]]), '\n')
+  VariationFromPercs("upd", c("p20", "p80"), s, factors)
 }
 
 ByNet <- function(t) {
@@ -77,14 +89,10 @@ ByNet <- function(t) {
 
   t <- t[with(t, order(delay, delay_var_pc, loss, dupl, reorder, congest)), ]
   s <- subset(t, op == "get")
-  m <- SignMatrix(s, factors)
-  cat("get - p10:", Variation(m, s[["p10"]]), '\n')
-  cat("get - p90:", Variation(m, s[["p90"]]), '\n')
+  VariationFromPercs("get", c("p10", "p90"), s, factors)
   
   s <- subset(t, op == "upd")
-  m <- SignMatrix(s, factors)
-  cat("upd - p10:", Variation(m, s[["p10"]]), '\n')
-  cat("upd - p90:", Variation(m, s[["p90"]]), '\n')
+  VariationFromPercs("upd", c("p10", "p90"), s, factors)
 }
 
 ByWorkloadPerc <- function(t) {
@@ -96,15 +104,9 @@ ByWorkloadPerc <- function(t) {
   for (c in levels(t$consist)) {
     cat("c =", c, "\n")
     s <- subset(t, consist == c & op == "get")
-    m <- SignMatrix(s, factors)
-    cat("get - p10:", Variation(m, s[["p10"]]), '\n')
-    cat("get - p40:", Variation(m, s[["p40"]]), '\n')
-    cat("get - p90:", Variation(m, s[["p90"]]), '\n')
+    VariationFromPercs("get", c("p10", "p40", "p90"), s, factors)
     s <- subset(t, consist == c & op == "upd")
-    m <- SignMatrix(s, factors)
-    cat("upd - p10:", Variation(m, s[["p10"]]), '\n')
-    cat("upd - p40:", Variation(m, s[["p40"]]), '\n')
-    cat("upd - p90:", Variation(m, s[["p90"]]), '\n')
+    VariationFromPercs("upd", c("p10", "p40", "p90"), s, factors)
   }
 }
 
@@ -117,6 +119,8 @@ ByWorkloadSumm <- function(t) {
   for (c in levels(t$consist)) {
     cat("c =", c, "\n")
     s <- subset(t, consist == c)
+
+    # Mean
     m <- SignMatrix(s, factors)
     y <- apply(s, 1, function(x) {
                        rw <- as.numeric(unlist(strsplit(x[2], ":")))
@@ -124,26 +128,47 @@ ByWorkloadSumm <- function(t) {
                        weighted.mean(get.upd, c(rw[1], rw[2]))
                      })
     cat("Mean:", Variation(m, y), '\n')
-    cat("Confl:", Variation(m, s[["confl"]]), '\n')
-    cat("Migs:", Variation(m, s[["mig"]]), '\n')
+
+    # Others
+    VariationFromSumm("confl", s, factors)
+    VariationFromSumm("migs", s, factors)
   }
 }
 
 BySize <- function(t) {
-  factors <- c("servers", "clients", "conc", "total_keys")
+  factors <- c("servers", "clients", "conc")
   cat("Factors:", factors, "\n")
 
-  t <- t[with(t, order(servers, clients, conc, total_keys)), ]
+  t <- t[with(t, order(servers, clients, conc)), ]
+  # ignore total_keys, we've seen it has no influence and
+  # also it's treated by ByDbSize
+  s <- subset(t, op == "get" & total_keys == 100000)
+  VariationFromPercs("get", c("p10", "p90"), s, factors)
+  
+  s <- subset(t, op == "upd" & total_keys == 100000)
+  VariationFromPercs("upd", c("p10", "p90"), s, factors)
+}
+
+ByDbSizePerc <- function(t) {
+  factors <- c("total_keys", "object_size", "delay")
+  cat("Factors:", factors, "\n")
+
+  t <- t[with(t, order(total_keys, object_size, delay)), ]
   s <- subset(t, op == "get")
-  m <- SignMatrix(s, factors)
-  cat("get - p20:", Variation(m, s[["p20"]]), '\n')
-  cat("get - p80:", Variation(m, s[["p80"]]), '\n')
+  VariationFromPercs("get", c("p10", "p90"), s, factors)
   
   s <- subset(t, op == "upd")
-  m <- SignMatrix(s, factors)
-  cat("upd - p20:", Variation(m, s[["p20"]]), '\n')
-  cat("upd - p80:", Variation(m, s[["p80"]]), '\n')
+  VariationFromPercs("upd", c("p10", "p90"), s, factors)
 }
+
+ByDbSizeSumm <- function(t) {
+  factors <- c("total_keys", "object_size", "delay")
+  cat("Factors:", factors, "\n")
+
+  t <- t[with(t, order(total_keys, object_size, delay)), ]
+  VariationFromSumm("confl", t, factors)
+}
+
 dir <- commandArgs(trailingOnly = T)[2]
 t.s <- read.table(paste(dir, "summary.csv", sep = '/'), T, ',')
 t.p <- read.table(paste(dir, "percentiles.csv", sep = '/'), T, ',')
@@ -152,4 +177,6 @@ t.p <- read.table(paste(dir, "percentiles.csv", sep = '/'), T, ',')
 #ByWorkloadSumm(t.s)
 #ByWorkloadPerc(t.p)
 #ByNet(t.p)
-BySize(t.p)
+#BySize(t.p)
+ByDbSizePerc(t.p)
+ByDbSizeSumm(t.s)
