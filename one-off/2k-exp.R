@@ -82,12 +82,10 @@ ByBDP <- function(t) {
 }
 
 ByNet <- function(t) {
-  t$delay_var_pc <- (t$delay_var / t$delay)
-
-  factors <- c("delay", "delay_var_pc", "loss", "dupl", "reorder", "congest")
+  factors <- c("delay", "delay_var", "loss", "dupl", "reorder", "congest")
   cat("Factors:", factors, "\n")
 
-  t <- t[with(t, order(delay, delay_var_pc, loss, dupl, reorder, congest)), ]
+  t <- t[with(t, order(delay, delay_var, loss, dupl, reorder, congest)), ]
   s <- subset(t, op == "get")
   VariationFromPercs("get", c("p10", "p90"), s, factors)
   
@@ -104,9 +102,9 @@ ByWorkloadPerc <- function(t) {
   for (c in levels(t$consist)) {
     cat("c =", c, "\n")
     s <- subset(t, consist == c & op == "get")
-    VariationFromPercs("get", c("p10", "p40", "p90"), s, factors)
+    VariationFromPercs("get", c("p10", "p90"), s, factors)
     s <- subset(t, consist == c & op == "upd")
-    VariationFromPercs("upd", c("p10", "p40", "p90"), s, factors)
+    VariationFromPercs("upd", c("p10", "p90"), s, factors)
   }
 }
 
@@ -127,11 +125,11 @@ ByWorkloadSumm <- function(t) {
                        get.upd = as.numeric(c(x[7], x[8]))
                        weighted.mean(get.upd, c(rw[1], rw[2]))
                      })
-    cat("Mean:", Variation(m, y), '\n')
+    cat("mean :", Variation(m, y), "\t| CV = ", CV(y), '\n')
 
     # Others
     VariationFromSumm("confl", s, factors)
-    VariationFromSumm("migs", s, factors)
+    #VariationFromSumm("migs", s, factors)
   }
 }
 
@@ -176,7 +174,7 @@ t.p <- read.table(paste(dir, "percentiles.csv", sep = '/'), T, ',')
 #ByBDP(t.p)
 #ByWorkloadSumm(t.s)
 #ByWorkloadPerc(t.p)
-#ByNet(t.p)
+ByNet(t.p)
 #BySize(t.p)
-ByDbSizePerc(t.p)
-ByDbSizeSumm(t.s)
+#ByDbSizePerc(t.p)
+#ByDbSizeSumm(t.s)

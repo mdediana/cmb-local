@@ -14,7 +14,7 @@ for (d in t$delay) {
     apply(subset(t, delay == d & op == o),
           1,
           function(row) {
-            gname <- paste(row[6], row[8], row[9], row[11], row[13])
+            gname <- paste(row[6], row[7], row[8], row[10], row[11])
 
             s <- as.numeric(row[-c(1:14)])
 
@@ -23,7 +23,7 @@ for (d in t$delay) {
                       xlim = c(0, 5), xlab = paste(o, " (s)"))
             delay = as.numeric(row[5]) / 1e3	# ms -> s
             abline(v = delay, lty = "dotted")
-            abline(h = row[3], lty = "dotted")
+            abline(h = row[2], lty = "dotted")
         })
     graphics.off()
   }
