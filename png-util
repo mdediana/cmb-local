@@ -1,0 +1,16 @@
+#!/bin/bash
+
+in=(option)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+cd $CMB_HOME
+
+option=$1
+
+DISS_DIR=$HOME/Documents/prod/diss/figuras
+
+case $option in
+cp) cp *.png $DISS_DIR;;
+rm) rm -fr $CMB_HOME/*.png
+esac
