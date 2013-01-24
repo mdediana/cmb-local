@@ -1,5 +1,8 @@
 #!/bin/bash
 
+in=(site)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
 set -ue
 
 site=$1

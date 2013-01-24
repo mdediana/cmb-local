@@ -46,7 +46,7 @@ Variation <- function(m, y) {
   sst <- sum(ss)
   stopifnot(all.equal(sst, sum((y - mean(y))^2), 1e-4))
   fraction.ss <- ss / sst
-  fraction.ss.percent <- 100 * round(fraction.ss, 2)
+  fraction.ss.percent <- 100 * round(fraction.ss, 3)
   fraction.ss.percent
 }
 
