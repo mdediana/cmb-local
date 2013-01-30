@@ -34,6 +34,7 @@ def load_latencies(f)
       :converters => :numeric) do | row |
     [:elapsed, :n, :errors].each { |k| h[k] = row[k] }
     h[:mean] = row[:mean] / 1e6 # us -> s
+    h[:sdev] = row[:sdev] / 1e6 # us -> s
   end
   h
 end
@@ -112,14 +113,13 @@ end
 # write summary
 parent = File.dirname(d)
 CSV.open("#{parent}/#{summ}", "w") do |csv|
-  csv << factor_header + ["ops_s", "get", "upd", "confl", "mig", "err"]
+  csv << factor_header + ["ops_s", "get", "upd", "get_sdev", "upd_sdev",
+                          "get_n", "upd_n", "confl", "mig", "err"]
   scenarios.each_value do |v|
     conf = v[:conf]; metrics = v[:metrics]
     get = v[:get]; upd = v[:upd]
-
     n = get[:n] + upd[:n]
     tp = n.to_f / get[:elapsed] # same as upd[:elapsed]
-    confl = metrics[:conflicts].to_f / get[:n]
     mig = conf[:rw_ratio] == "1:0" ? 0 : metrics[:migrations].to_f / upd[:n]
     err = (get[:errors] + upd[:errors]).to_f / n
 
@@ -129,7 +129,11 @@ CSV.open("#{parent}/#{summ}", "w") do |csv|
            [tp,
             get[:mean],
             upd[:mean],
-            confl,
+            get[:sdev],
+            upd[:sdev],
+            get[:n],
+            upd[:n],
+            metrics[:conflicts],
             mig,
             err]
   end
