@@ -26,6 +26,7 @@ plot(t1, main = "Aquecimento",
 lines(t2, lty = ltys[2], lwd = 1.5, col = cols[2])
 lines(t3, lty = ltys[3], lwd = 1.5, col = cols[3])
 lines(t4, lty = ltys[4], lwd = 1.5, col = cols[4])
-legend(25, 12, c("0.5 uni", "0.9 uni", "0.5 par", "0.9 par"),
+legend(20, 11, c("50% | uniforme", "90% | uniforme", "50% | concentrada",
+       "90% | concentrada"),
        lty = ltys, col = cols)
 dev.off()
