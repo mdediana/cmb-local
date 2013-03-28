@@ -111,9 +111,9 @@ for (l in unique(t$loc)) {
   any <-subset(s, consist == "any")
 
   cat("p75, any, lat, ev2:", any$p75, lat$p75, ev2$p75, '\n')
-  cat("p75, any / ev2:", (ev2$p75 - any$p75) / ev2$p75, '\n') 
-  cat("p75, lat / ev2:", (ev2$p75 - lat$p75) / ev2$p75, '\n') 
+  cat("p75, any / ev2:", ev2$p75 / any$p75, '\n') 
+  cat("p75, lat / ev2:", ev2$p75 / lat$p75, '\n') 
   cat("p95, any, lat, ev2:", any$p95, lat$p95, ev2$p95, '\n')
-  cat("p95, any / ev2:", (ev2$p95 - any$p95) / ev2$p95, '\n') 
-  cat("p95, lat / ev2:", (ev2$p95 - lat$p95) / ev2$p95, '\n') 
+  cat("p95, any / ev2:", ev2$p95 / any$p95, '\n') 
+  cat("p95, lat / ev2:", ev2$p95 / lat$p95, '\n') 
 }
